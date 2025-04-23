@@ -5,7 +5,7 @@ class Config:
     load_dotenv()
     # AI
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-    OPENAI_APIKEY = os.getenv("OPENAI_APIKEY")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     # MONGOS
     MONGO_IA = os.getenv("MONGO_IA")
     MONGO_NUBE = os.getenv("MONGO_NUBE")

@@ -6,9 +6,9 @@ from typing import List, Dict
 from agno.utils.log import log_debug, log_info, logger
 from databases.clickhouse_client import config
 
-class WhatsappTools(Toolkit):
+class WhatsappTool(Toolkit):
     def __init__(self):
-        super().__init__(name="whatsapp_tools")
+        super().__init__(name="whatsapp_tool")
         # Registrar las funciones en el toolkit para que sean accesibles dinámicamente
         self.register(self.enviar_productos)
         self.register(self.mensaje_espera)

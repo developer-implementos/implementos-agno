@@ -15,11 +15,22 @@
 
 ## Instalación
 
-Copie el archivo `.env.example` en `.env` y complete las propiedades.
-Ejecute los siguientes comandos en Powershell de Windows para inicializar la API.
+- Copie el archivo `.env.example` en `.env` y complete las propiedades.
+- Solicite y copie en la raiz el archivo `key-storage.json` de administración de buckets de google cloud.
+- Ejecute los siguientes comandos en Powershell de Windows para inicializar la API.
 
 ```bat
 ./scripts/dev_setup.bat
+.\.venv\Scripts\activate
+pip install -e libs/agno
+pip install -r requirements.txt
+python playground.py
+```
+
+- o Ejecute los siguientes comandos en Linux/Mac para inicializar la API
+
+```bat
+./scripts/dev_setup.sh
 .\.venv\Scripts\activate
 pip install -e libs/agno
 pip install -r requirements.txt
@@ -32,7 +43,7 @@ Para instalar nuevos paquetes se debe usar los comandos:
 
 ```bat
 .\.venv\Scripts\activate
-pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4
+pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4 markdown_pdf google google-cloud google-cloud-storage pandas pypdf aiofiles python-docx
 pip freeze > requirements.txt
 ```
 

@@ -18,7 +18,7 @@ storagem = MongoDbStorage(
 def create_agent() -> Agent:
     model = OpenAIChat(
         id="gpt-4.1",
-        api_key=Config.OPENAI_APIKEY,
+        api_key=Config.OPENAI_API_KEY,
         temperature=0.4
     )
     instructions = """
