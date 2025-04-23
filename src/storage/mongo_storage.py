@@ -3,5 +3,6 @@ from config.config import Config
 
 MongoStorage = MongoDbStorage(
     collection_name="agent_sessions",
-    db_url=Config.MONGO_NUBE,
+    db_name="ia",
+    db_url=Config.MONGO_IA,
 )

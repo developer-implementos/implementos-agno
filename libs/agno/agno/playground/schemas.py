@@ -31,6 +31,7 @@ class AgentGetResponse(BaseModel):
     description: Optional[str] = None
     instructions: Optional[Union[List[str], str, Callable]] = None
     perfiles: Optional[List[str]]  = None
+    audio_real_time: bool  = None
 
     @classmethod
     def from_agent(self, agent: Agent) -> "AgentGetResponse":

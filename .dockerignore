@@ -1,0 +1,39 @@
+# .dockerignore
+
+# Ignorar control de versiones
+.git
+.gitignore
+
+# Ignorar entornos virtuales
+.venv
+venv
+env
+
+# Ignorar caché de Python y archivos compilados
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Ignorar archivos de configuración local y secretos (se montan o pasan por env_file)
+.env*
+key-storage.json # Evita copiarlo a la imagen, se monta con docker-compose
+*.local
+
+# Ignorar archivos específicos de Docker/Compose
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Archivos de configuración del editor/IDE
+.vscode/
+.idea/
+
+# Otros archivos temporales o de sistema operativo
+*.swp
+*~
+.DS_Store
+Thumbs.db

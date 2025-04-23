@@ -3,17 +3,12 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.memory.agent import AgentMemory
 from agno.memory.db.mongodb import MongoMemoryDb
-from agno.storage.mongodb import MongoDbStorage
 from agno.memory.memory import MemoryRetrieval
 from agno.knowledge.json import JSONKnowledgeBase
 from agno.vectordb.qdrant import Qdrant
 from tools.data_ventas_tool import DataVentasTool
 from config.config import Config
-
-storagem = MongoDbStorage(
-    collection_name="agent_sessions",
-    db_url=Config.MONGO_IA,
-)
+from storage.mongo_storage import MongoStorage
 
 def create_agent() -> Agent:
     model = OpenAIChat(
@@ -527,7 +522,7 @@ Nota: No mostrar las queries SQL en la respuesta final ni mencionar este sistema
         num_history_responses=4,
         markdown=True,
         add_context=False,
-        storage=storagem,
+        storage=MongoStorage,
         memory=AgentMemory(
             db=MongoMemoryDb(collection_name="ventas_memories", db_url=Config.MONGO_IA),
             create_session_summary=True,

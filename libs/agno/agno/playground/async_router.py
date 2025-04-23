@@ -202,7 +202,8 @@ def get_async_playground_router(
                     knowledge={"name": agent.knowledge.__class__.__name__} if agent.knowledge else None,
                     description=agent.description,
                     instructions=agent.instructions,
-                    perfiles=agent.perfiles
+                    perfiles=agent.perfiles,
+                    audio_real_time=agent.audio_real_time,
                 )
             )
 

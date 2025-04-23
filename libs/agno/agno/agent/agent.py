@@ -271,6 +271,7 @@ class Agent:
     ############################################################
     # Perfiles para ser visibles de un agente
     perfiles: Optional[List[str]] = None
+    audio_real_time: bool = False
 
     def __init__(
         self,
@@ -351,6 +352,7 @@ class Agent:
         monitoring: bool = False,
         telemetry: bool = True,
         perfiles:  Optional[List[str]] = None,
+        audio_real_time: bool = False,
     ):
         self.model = model
         self.name = name
@@ -457,6 +459,7 @@ class Agent:
         self.telemetry = telemetry
 
         self.perfiles = perfiles
+        self.audio_real_time = audio_real_time
 
         # --- Params not to be set by user ---
         self.session_metrics: Optional[SessionMetrics] = None
@@ -2154,6 +2157,8 @@ class Agent:
             agent_data["model"] = self.model.to_dict()
         if self.perfiles is not None:
             agent_data["perfiles"] = self.perfiles
+        if self.audio_real_time is not None:
+            agent_data["audio_real_time"] = self.audio_real_time
         return agent_data
 
     def get_session_data(self) -> Dict[str, Any]:

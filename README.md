@@ -23,17 +23,15 @@
 ```bat
 ./scripts/dev_setup.bat
 .\.venv\Scripts\activate
-pip install -e libs/agno
 pip install -r requirements.txt
 python playground.py
 ```
 
 - o Ejecute los siguientes comandos en Linux/Mac para inicializar la API
 
-```bat
+```bash
 ./scripts/dev_setup.sh
-.\.venv\Scripts\activate
-pip install -e libs/agno
+source .venv/bin/activate
 pip install -r requirements.txt
 python playground.py
 ```
