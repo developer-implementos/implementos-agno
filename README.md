@@ -32,13 +32,20 @@ Para instalar nuevos paquetes se debe usar los comandos:
 
 ```bat
 .\.venv\Scripts\activate
-pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect
+pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4
 pip freeze > requirements.txt
+```
+
+IMPORTANTE: Se deben cambiar las primeras tres lineas por:
+```bat
+-e ./libs/agno
+-e ./libs/infra/agno_aws
+-e ./libs/infra/agno_docker
 ```
 
 ## Cambios a la librería agno
 
-Cada vez que se realice un cambio local de la libreria agno SE DEBE EJECUTAR `pip install -e libs/agno` en la carpeta raiz.
+Cada vez que se realice un cambio local de la libreria agno SE DEBE EJECUTAR `pip install -e ./libs/agno` en la carpeta raiz.
 
 ## Levantar playground
 

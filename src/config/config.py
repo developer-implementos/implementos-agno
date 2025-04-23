@@ -8,6 +8,7 @@ class Config:
     OPENAI_APIKEY = os.getenv("OPENAI_APIKEY")
     # MONGOS
     MONGO_IA = os.getenv("MONGO_IA")
+    MONGO_NUBE = os.getenv("MONGO_NUBE")
     # CLICKHOUSE
     CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST")
     CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT"))
