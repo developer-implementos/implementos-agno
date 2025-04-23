@@ -15,6 +15,7 @@
 
 ## Instalación
 
+- Asegurarse de estar en la rama `implementos-main` (ya que `main` es para el fork)
 - Copie el archivo `.env.example` en `.env` y complete las propiedades.
 - Solicite y copie en la raiz el archivo `key-storage.json` de administración de buckets de google cloud.
 - Ejecute los siguientes comandos en Powershell de Windows para inicializar la API.
