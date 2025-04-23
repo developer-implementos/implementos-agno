@@ -113,7 +113,7 @@ Agente_Maestro_Mecanico = Agent(
     storage=MongoStorage,
     memory=memory,
     stream=True,
-    debug_mode=True,
+    debug_mode=False,
     add_state_in_messages=True,
     perfiles=["1", "5", "9"]  
 )

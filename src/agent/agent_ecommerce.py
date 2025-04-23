@@ -206,7 +206,7 @@ TALCAHUANO = TALCAHUANO
         add_history_to_messages=False  # Desactiva el historial completo
      ),
      num_history_responses=6,
-     debug_mode=True,
+     debug_mode=False,
      storage=MongoStorage,
      add_state_in_messages=True,
      perfiles=["1", "5", "9"]

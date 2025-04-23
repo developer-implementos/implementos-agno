@@ -66,7 +66,7 @@ Agente_Articulos = Agent(
      show_tool_calls=True,
      add_history_to_messages=True,
      num_history_responses=4,
-     debug_mode=True,
+     debug_mode=False,
      storage=MongoStorage,
      perfiles=["1", "5", "9"]
     )

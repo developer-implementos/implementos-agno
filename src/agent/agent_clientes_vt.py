@@ -316,7 +316,7 @@ Agente_Clientes_Vt = Agent(
     stream_intermediate_steps=True,
     num_history_responses=6,
     storage=MongoStorage,
-    debug_mode=True,
+    debug_mode=False,
     add_state_in_messages=True,
     perfiles=["1", "5", "9"]
     )

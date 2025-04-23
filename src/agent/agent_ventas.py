@@ -533,7 +533,7 @@ Nota: No mostrar las queries SQL en la respuesta final ni mencionar este sistema
             num_memories=15,  
             update_system_message_on_change=True
         ),        
-        debug_mode=True,
+        debug_mode=False,
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,

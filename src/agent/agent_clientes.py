@@ -83,6 +83,6 @@ Agente_Clientes = Agent(
      add_history_to_messages=True,
      num_history_responses=4,
      storage=MongoStorage,
-     debug_mode=True,
+     debug_mode=False,
      perfiles=["1", "5"]
     )
