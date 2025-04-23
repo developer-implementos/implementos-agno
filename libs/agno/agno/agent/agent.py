@@ -265,6 +265,12 @@ class Agent:
     # telemetry=True logs minimal telemetry for analytics
     # This helps us improve the Agent and provide better support
     telemetry: bool = True
+    
+    ############################################################
+    # PARAMETROS PROPIOS DE IMPLEMENTOS
+    ############################################################
+    # Perfiles para ser visibles de un agente
+    perfiles: Optional[List[str]] = None
 
     def __init__(
         self,
@@ -344,6 +350,7 @@ class Agent:
         debug_mode: bool = False,
         monitoring: bool = False,
         telemetry: bool = True,
+        perfiles:  Optional[List[str]] = None,
     ):
         self.model = model
         self.name = name
@@ -448,6 +455,8 @@ class Agent:
         self.debug_mode = debug_mode
         self.monitoring = monitoring
         self.telemetry = telemetry
+
+        self.perfiles = perfiles
 
         # --- Params not to be set by user ---
         self.session_metrics: Optional[SessionMetrics] = None
@@ -2143,6 +2152,8 @@ class Agent:
             agent_data["agent_id"] = self.agent_id
         if self.model is not None:
             agent_data["model"] = self.model.to_dict()
+        if self.perfiles is not None:
+            agent_data["perfiles"] = self.perfiles
         return agent_data
 
     def get_session_data(self) -> Dict[str, Any]:
@@ -3311,7 +3322,7 @@ class Agent:
 
         return json.dumps(docs, indent=2, ensure_ascii=False)
     
-   def convert_context_to_string(self, context: Dict[str, Any]) -> str:
+    def convert_context_to_string(self, context: Dict[str, Any]) -> str:
         """Convert the context dictionary to a string representation.
 
         Args:

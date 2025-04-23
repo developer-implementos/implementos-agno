@@ -30,6 +30,7 @@ class AgentGetResponse(BaseModel):
     knowledge: Optional[Dict[str, Any]] = None
     description: Optional[str] = None
     instructions: Optional[Union[List[str], str, Callable]] = None
+    perfiles: Optional[List[str]]  = None
 
     @classmethod
     def from_agent(self, agent: Agent) -> "AgentGetResponse":

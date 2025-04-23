@@ -13,6 +13,42 @@
   <a href="https://github.com/agno-agi/agno/stargazers">🌟 Star Us</a>
 </div>
 
+## Instalación
+
+Copie el archivo `.env.example` en `.env` y complete las propiedades.
+Ejecute los siguientes comandos en Powershell de Windows para inicializar la API.
+
+```bat
+./scripts/dev_setup.bat
+.\.venv\Scripts\activate
+pip install -e libs/agno
+pip install -r requirements.txt
+python playground.py
+```
+
+## Instalar nuevos paquetes
+
+Para instalar nuevos paquetes se debe usar los comandos:
+
+```bat
+.\.venv\Scripts\activate
+pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect
+pip freeze > requirements.txt
+```
+
+## Cambios a la librería agno
+
+Cada vez que se realice un cambio local de la libreria agno SE DEBE EJECUTAR `pip install -e libs/agno` en la carpeta raiz.
+
+## Levantar playground
+
+Para levantar el playground se debe ejecutar el siguiente comando en la carpeta raiz.
+
+```bat
+.\.venv\Scripts\activate
+python playground.py
+```
+
 ## Introduction
 
 [Agno](https://docs.agno.com) is a lightweight library for building Agents with memory, knowledge, tools and reasoning.
