@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src"
 
 # Libreria
 from agno.playground import Playground, serve_playground_app
+from agno.playground.settings import PlaygroundSettings
 
 # Src
 from agent.agent_basic import Agente_Basico
@@ -26,6 +27,11 @@ from config.config import Config
 os.environ["OPENAI_API_KEY"] = Config.OPENAI_API_KEY
 os.environ["ANTHROPIC_API_KEY"] = Config.ANTHROPIC_API_KEY
 
+# Configura CORS personalizado
+settings = PlaygroundSettings(
+    cors_origin_list=["http://localhost:3000", "https://agentes.implementos.cl"]
+)
+
 app = Playground(
     agents=[
         Agente_Basico,
@@ -38,7 +44,8 @@ app = Playground(
         Agente_Documentos,
         Agente_Ecommerce,
         Agente_Maestro_Mecanico,
-    ]
+    ],
+    settings=settings
 ).get_app(use_async=True)
 
 if __name__ == "__main__":
