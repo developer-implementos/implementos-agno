@@ -115,5 +115,5 @@ Agente_Maestro_Mecanico = Agent(
     stream=True,
     debug_mode=False,
     add_state_in_messages=True,
-    perfiles=["1", "5", "9"]  
+    perfiles=["1", "5"]  
 )

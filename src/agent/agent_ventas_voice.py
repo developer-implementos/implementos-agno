@@ -162,7 +162,7 @@ def create_agent() -> Agent:
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
-        perfiles=["1", "5", "9"],
+        perfiles=["1", "5"],
         audio_real_time=True,
     )
 

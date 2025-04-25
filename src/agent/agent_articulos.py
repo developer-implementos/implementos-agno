@@ -68,5 +68,5 @@ Agente_Articulos = Agent(
      num_history_responses=4,
      debug_mode=False,
      storage=MongoStorage,
-     perfiles=["1", "5", "9"]
+     perfiles=["1", "5"]
     )

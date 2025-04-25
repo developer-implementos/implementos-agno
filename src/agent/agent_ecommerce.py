@@ -209,5 +209,5 @@ TALCAHUANO = TALCAHUANO
      debug_mode=False,
      storage=MongoStorage,
      add_state_in_messages=True,
-     perfiles=["1", "5", "9"]
+     perfiles=["1", "5"]
 )

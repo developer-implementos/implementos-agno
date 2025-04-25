@@ -70,5 +70,5 @@ Agente_Documentos = Agent(
     stream=True,
     stream_intermediate_steps=True,
     system_message="Usa formato markdown para todas tus respuestas. Formatea citas y referencias de forma clara. Utiliza cabeceras, listas, tablas y otros elementos de markdown cuando sea apropiado.",
-    perfiles=["1", "5", "9"]
+    perfiles=["1", "5"]
 )

@@ -461,5 +461,5 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
     stream=True,
     debug_mode=False,
     storage=MongoStorage,
-    perfiles=["1", "5", "9"]
+    perfiles=["1", "3", "5", "9"]
 )
