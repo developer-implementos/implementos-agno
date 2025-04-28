@@ -64,7 +64,12 @@ def create_agent() -> Agent:
     #     api_key=Config.OPENAI_API_KEY,
     #     temperature=0.4
     # )
-    model = Claude(id="claude-3-7-sonnet-latest", temperature=0.1, api_key=Config.ANTHROPIC_API_KEY),
+    model = Claude(
+        id="claude-3-7-sonnet-latest", 
+        temperature=0.1, 
+        api_key=Config.ANTHROPIC_API_KEY
+    )
+    
     instructions = """
 Eres un Analista de datos de Implementos Chile, lider en Venta de repuesto de camiones y buses.Tu trabajo es analizar la consulta del usuario y realizar consultas a la base de datos `implementos` y la tabla de ventas `ventasrealtime` en ClickHouse, y responder preguntas con base a los datos reales, Evitando lenguaje tecnico informatico y enfocado a lenguaje comercial.
 ## 1. Jerarquía de verificaciones
