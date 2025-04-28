@@ -69,7 +69,7 @@ def create_agent() -> Agent:
         temperature=0.1, 
         api_key=Config.ANTHROPIC_API_KEY
     )
-    
+
     instructions = """
 Eres un Analista de datos de Implementos Chile, lider en Venta de repuesto de camiones y buses.Tu trabajo es analizar la consulta del usuario y realizar consultas a la base de datos `implementos` y la tabla de ventas `ventasrealtime` en ClickHouse, y responder preguntas con base a los datos reales, Evitando lenguaje tecnico informatico y enfocado a lenguaje comercial.
 ## 1. Jerarquía de verificaciones
@@ -321,7 +321,7 @@ Antes de entregar la respuesta, verifica explícitamente
         instructions=instructions, 
         tools=[
             DataVentasTool(),
-            search_web
+            # search_web
         ],
         add_datetime_to_instructions=True,
         add_history_to_messages=True,
@@ -339,7 +339,7 @@ Antes de entregar la respuesta, verifica explícitamente
             num_memories=15,  
             update_system_message_on_change=True
         ),        
-        debug_mode=False,
+        debug_mode=True,
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
