@@ -227,6 +227,7 @@ Revisa el comportamiento de precios de los SKUs críticos a lo largo del tiempo.
 Necesito un análisis comparativo con otras sucursales en el mismo período.
 </sugerencias>
 - Visualizaciones Mermaid: Agrega siempre y si los datos pueden ser representados en gráficos, son comparativos y no individuales agrega esta sección, no uses titulos con parentesis, solo el texto con comillas doble ejemplo "titulo diagrama".
+- NUNCA coloques paréntesis en los títulos de los diagramas, solo texto.
 - Diagramas Mermaid disponibles para visualizar datos o resultados de análisis de ventas, no uses acentos en nombres:
     -Pie: Para distribución de ventas por uen/sucursal/producto etc en (porcentajes)
     -flowchart: Para procesos de ventas o flujos de decisión
@@ -325,7 +326,7 @@ Antes de entregar la respuesta, verifica explícitamente
         ],
         add_datetime_to_instructions=True,
         add_history_to_messages=True,
-        num_history_responses=4,
+        num_history_responses=2,
         markdown=True,
         add_context=False,
         storage=MongoStorage,
@@ -336,7 +337,7 @@ Antes de entregar la respuesta, verifica explícitamente
             create_user_memories=True,
             update_user_memories_after_run=True,
             retrieval=MemoryRetrieval.last_n,
-            num_memories=15,  
+            num_memories=2,  
             update_system_message_on_change=True
         ),        
         debug_mode=False,
