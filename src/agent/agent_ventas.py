@@ -330,16 +330,16 @@ Antes de entregar la respuesta, verifica explícitamente
         markdown=True,
         add_context=False,
         storage=MongoStorage,
-        memory=AgentMemory(
-            db=MongoMemoryDb(collection_name="ventas_memories", db_url=Config.MONGO_IA),
-            create_session_summary=True,
-            update_session_summary_after_run=True,
-            create_user_memories=True,
-            update_user_memories_after_run=True,
-            retrieval=MemoryRetrieval.last_n,
-            num_memories=2,  
-            update_system_message_on_change=True
-        ),        
+        # memory=AgentMemory(
+        #     db=MongoMemoryDb(collection_name="ventas_memories", db_url=Config.MONGO_IA),
+        #     create_session_summary=True,
+        #     update_session_summary_after_run=True,
+        #     create_user_memories=True,
+        #     update_user_memories_after_run=True,
+        #     retrieval=MemoryRetrieval.last_n,
+        #     num_memories=2,  
+        #     update_system_message_on_change=True
+        # ),        
         debug_mode=False,
         show_tool_calls=False,
         stream_intermediate_steps=False,
