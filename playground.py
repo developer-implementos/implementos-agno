@@ -22,7 +22,7 @@ from agent.agent_clientes import Agente_Clientes
 from agent.agent_documentos import Agente_Documentos
 from agent.agent_ecommerce import Agente_Ecommerce
 from agent.agent_maestro_mecanico import Agente_Maestro_Mecanico
-from agent.agent_vt import Agente_VT
+from agent.agent_vt import Team_VT
 from config.config import Config
 
 from api.auth.auth_api import auth_router
@@ -39,7 +39,7 @@ settings = PlaygroundSettings(
 app = Playground(
     agents=[
         # Agente_Basico,
-        Agente_VT,
+        Team_VT,
         Agente_Ventas,
         Agente_Ventas_V2,
         Agente_Ventas_Voice,

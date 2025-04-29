@@ -1,6 +1,6 @@
 import json
 import requests
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pymongo import MongoClient
 from agno.tools import Toolkit
@@ -26,6 +26,45 @@ class ClientesVtTool(Toolkit):
         self.register(self.ultima_compra_cliente)
         self.register(self.flota_cliente)
         self.register(self.pedidos_pendientes_por_estado)
+
+    def _obtener_ruts_cartera_objetivo(self, codigo_empleado: str) -> List[str]:
+        """
+        Obtiene los RUTs de la cartera objetivo de un vendedor.
+        
+        Args:
+            codigo_empleado (str): Código del empleado
+            
+        Returns:
+            List[str]: Lista de RUTs de la cartera objetivo
+        """
+        try:
+            client = MongoClient(Config.MONGO_NUBE)
+            db = client.Implenet
+            cartera_objetivo = db.CarteraObjetivo
+            
+            data = cartera_objetivo.aggregate([
+                {
+                    "$match": {
+                        "codigoEmpleado": codigo_empleado,
+                        "estadoVigente": 1
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "rut": "$rutCliente"
+                    }
+                }
+            ])
+            
+            result = list(data)
+            client.close()
+            
+            ruts = [item["rut"] for item in result]
+            return ruts
+        except Exception as e:
+            logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
+            return []
 
     def create_clickhouse_client(self):
         """Crea y devuelve un cliente de ClickHouse utilizando la configuración"""
@@ -54,24 +93,35 @@ class ClientesVtTool(Toolkit):
         except Exception as err:
             return f"error running query: {err}"
         
-    def clientes_bloqueados(self, ruts: List[str]) -> str:
+    def clientes_bloqueados(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
         """
         Función para buscar clientes bloqueados por sus RUTs
         
         Args:
-            ruts (List[str]): Lista de RUTs de clientes a buscar
+            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a buscar. Si no se proporciona, 
+                                         se usan todos los RUTs de la cartera objetivo.
             
         Returns:
             str: Información de los clientes bloqueados en formato JSON
         """
         try:
-            client = MongoClient(Config.MONGO_NUBE)
-            db = client.Implenet
-            clientes = db.clientes
+            if ruts is None:
+                ruts = self._obtener_ruts_cartera_objetivo(codigo_empleado)
+                if not ruts:
+                    return json.dumps({
+                        "ok": False,
+                        "mensaje": "No se encontraron RUTs en la cartera objetivo"
+                    }, ensure_ascii=False, indent=2)
+            
             log_debug(f"Consultando clientes bloqueados con RUTs: {ruts}")
             
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
+            
+            client = MongoClient(Config.MONGO_NUBE)
+            db = client.Implenet
+            clientes = db.clientes
             
             data = clientes.aggregate([
                 {
@@ -245,17 +295,28 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def facturas_cliente(self, ruts: List[str]) -> str:
+    def facturas_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las facturas pendientes de clientes
         
         Args:
-            ruts (List[str]): Lista de RUTs de clientes a consultar
+            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
+                                        se usan todos los RUTs de la cartera objetivo.
             
         Returns:
             str: Información de las facturas pendientes en formato JSON
         """
         try:
+            if ruts is None:
+                ruts = self._obtener_ruts_cartera_objetivo(codigo_empleado)
+                if not ruts:
+                    return json.dumps({
+                        "ok": False,
+                        "mensaje": "No se encontraron RUTs en la cartera objetivo"
+                    }, ensure_ascii=False, indent=2)
+            
+            # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
             
             client = MongoClient(Config.MONGO_NUBE)
@@ -427,17 +488,28 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def resumen_cliente(self, ruts: List[str]) -> str:
+    def resumen_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener el resumen de clientes
         
         Args:
-            ruts (List[str]): Lista de RUTs de clientes a consultar
+            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
+                                        se usan todos los RUTs de la cartera objetivo.
             
         Returns:
             str: Resumen de los clientes en formato JSON
         """
         try:
+            if ruts is None:
+                ruts = self._obtener_ruts_cartera_objetivo(codigo_empleado)
+                if not ruts:
+                    return json.dumps({
+                        "ok": False,
+                        "mensaje": "No se encontraron RUTs en la cartera objetivo"
+                    }, ensure_ascii=False, indent=2)
+            
+            # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
             
             client = MongoClient(Config.MONGO_NUBE)
@@ -479,17 +551,27 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def segmentos_cliente(self, ruts: List[str]) -> str:
+    def segmentos_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener los segmentos de clientes
         
         Args:
-            ruts (List[str]): Lista de RUTs de clientes a consultar
+            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
+                                        se usan todos los RUTs de la cartera objetivo.
             
         Returns:
             str: Información de los segmentos de clientes en formato JSON
         """
         try:
+            if ruts is None:
+                ruts = self._obtener_ruts_cartera_objetivo(codigo_empleado)
+                if not ruts:
+                    return json.dumps({
+                        "ok": False,
+                        "mensaje": "No se encontraron RUTs en la cartera objetivo"
+                    }, ensure_ascii=False, indent=2)
+            
             segmentos_diccionario = {
                 "TODOS": "TODOS",
                 "TLC": "TELECOMUNICACIONES",
@@ -515,6 +597,7 @@ class ClientesVtTool(Toolkit):
                 "ML": "MERCADO LIBRE (E)"
             }
             
+            # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
             
             client = MongoClient(Config.MONGO_NUBE)
@@ -557,17 +640,28 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def uen_fugadas_cliente(self, ruts: List[str]) -> str:
+    def uen_fugadas_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las UEN fugadas de clientes
         
         Args:
-            ruts (List[str]): Lista de RUTs de clientes a consultar
+            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
+                                        se usan todos los RUTs de la cartera objetivo.
             
         Returns:
             str: Información de las UEN fugadas en formato JSON
         """
         try:
+            if ruts is None:
+                ruts = self._obtener_ruts_cartera_objetivo(codigo_empleado)
+                if not ruts:
+                    return json.dumps({
+                        "ok": False,
+                        "mensaje": "No se encontraron RUTs en la cartera objetivo"
+                    }, ensure_ascii=False, indent=2)
+            
+            # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
             
             client = MongoClient(Config.MONGO_NUBE)
@@ -615,7 +709,7 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def ultima_compra_cliente(self, rut: List[str]) -> str:
+    def ultima_compra_cliente(self, rut: str) -> str:
         """
         Función para obtener la última compra de cliente
         
@@ -717,6 +811,7 @@ class ClientesVtTool(Toolkit):
             error_message = f"Error al obtener flota de cliente: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+    
     def pedidos_pendientes_por_estado(self, rut: str, rut_vendedor: str, estados_pedido: List[str] = None) -> str:
         """
         Función para obtener los pedidos pendientes de un cliente filtrados por estado

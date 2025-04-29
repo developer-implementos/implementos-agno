@@ -15,12 +15,12 @@ class VendedorVtTool(Toolkit):
         self.register(self.cumplimiento_meta_vendedor)
         self.register(self.pedidos_pendientes_vendedor)
 
-    def obtener_informacion_usuario(self, codigo_vendedor: str) -> str:
+    def obtener_informacion_usuario(self, codigo_vendedor: int) -> str:
         """
         Obtiene la información completa del usuario/vendedor
         
         Args:
-            codigo_vendedor (str): Código del vendedor
+            codigo_vendedor (int): Código del vendedor
             
         Returns:
             str: Información del usuario en formato JSON
