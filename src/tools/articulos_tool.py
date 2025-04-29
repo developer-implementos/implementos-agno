@@ -12,6 +12,7 @@ class ArticulosTool(Toolkit):
     def __init__(self):
         super().__init__(name="articulos_tool")
         # Registrar las funciones en el toolkit para que sean accesibles dinámicamente.
+        self.register(self.ficha_producto)
         self.register(self.stock_sku)
         self.register(self.reservas_sku)
         self.register(self.transitos_internos_sku)
@@ -24,6 +25,49 @@ class ArticulosTool(Toolkit):
         self.register(self.buscar_producto)
         self.register(self.search_crossference_oem)
         self.register(self.buscar_crossreference_oem)
+        self.register(self.precio_competencia_sku)
+    def ficha_producto(self, sku: str) -> str:
+        """
+        Información de la ficha de un producto
+
+        Args:
+            sku (str): SKU de producto.
+
+        Returns:
+            str: Resultado de la consulta en formato JSON.
+        """
+        try:
+            # URL de la API de precios
+            api_url = "https://b2b-api.implementos.cl/api/catalogo/ficha/" + sku
+           
+            # Preparar los datos para la solicitud POST
+            params = {
+                "rut": "0",
+                "sucursal": "SAN BRNRDO"
+            }
+            
+            # Configurar los headers
+            headers = {
+                "Content-Type": "application/json",
+                "authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+            
+            # Realizar la solicitud POST
+            response = requests.get(api_url, headers=headers, params=params)
+            # Verificar si la solicitud fue exitosa
+            if response.status_code == 200:
+                # Convertir la respuesta a JSON
+                result = response.json()
+                formatted_result = json.dumps(result, ensure_ascii=False, indent=2)
+                log_debug(f"Stock consultado correctamente para SKU {sku}: {formatted_result}")
+                return formatted_result
+            else:
+                error_message = f"Error en la solicitud: {response.status_code} - {response.text}"
+                log_debug(error_message)
+                return error_message
+        except Exception as e:
+            logger.warning(f"Error al consultar stock para SKU {sku}: {e}")
+            return f"Error: {e}"
     def stock_sku(self, sku: str) -> str:
         """
         Información de stock en tiendas para un SKU específico.
@@ -698,4 +742,81 @@ class ArticulosTool(Toolkit):
         unique_skus = list({item['sku'] for item in all_skus})
         
         return {'data': unique_skus}
-    
+    def precio_competencia_sku(self, skus: List[str]) -> str:
+        """
+        Función para obtener precios de competencia para uno o varios SKUs
+        
+        Args:
+            skus (List[str]): Lista de SKUs para consultar precios de competencia
+            
+        Returns:
+            str: Información de precios de competencia en formato JSON
+        """
+        try:
+            if not skus or len(skus) == 0:
+                log_debug("No se proporcionaron SKUs para consultar precios de competencia")
+                return json.dumps({"error": "Necesitas indicar uno o más SKUs para obtener el precio competencia"}, ensure_ascii=False, indent=2)
+            
+            # Convertir todos los SKUs a mayúsculas
+            skus_upper = [sku.upper() for sku in skus]
+            
+            client = MongoClient(Config.MONGO_NUBE)
+            db = client.Implenet
+            sku_precio_competencia = db.SkuPrecioCompetencia
+            
+            data = sku_precio_competencia.aggregate([
+                {
+                    "$match": {
+                        "sku": {
+                            "$in": skus_upper
+                        }
+                    }
+                },
+                {
+                    "$sort": {
+                        "updatedAt": -1
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "sku": "$sku",
+                            "proveedor": "$proveedor"
+                        },
+                        "precioPorv": {"$first": "$precioPorv"},
+                        "ultimaActualizacion": {"$first": "$updatedAt"}
+                    }
+                },
+                {
+                    "$match": {
+                        "precioPorv": {"$ne": None}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "sku": "$_id.sku",
+                        "competencia": "$_id.proveedor",
+                        "precio": {"$toInt": "$precioPorv"},
+                        "f_actualizacion": {
+                            "$dateToString": {
+                                "format": "%d/%m/%Y",
+                                "date": "$ultimaActualizacion"
+                            }
+                        }
+                    }
+                }
+            ])
+            
+            result = list(data)
+            
+            client.close()
+            
+            log_debug(f"Se encontraron {len(result)} precios de competencia para los SKUs {skus}")
+            return json.dumps(result, ensure_ascii=False, indent=2)
+            
+        except Exception as e:
+            error_message = f"Error al consultar precios de competencia para SKUs {skus}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+        
