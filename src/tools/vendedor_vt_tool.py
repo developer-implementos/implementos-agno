@@ -49,7 +49,6 @@ class VendedorVtTool(Toolkit):
                     "token": auth_info.get("token", ""),
                     "email": auth_info.get("email", ""),
                     "movil": auth_info.get("movil", ""),
-                    "ultimo_ingreso": auth_info.get("ultimo_ingreso", "")
                 }
             }
             
@@ -61,11 +60,12 @@ class VendedorVtTool(Toolkit):
                 "mensaje": f"Error al obtener información del usuario: {str(e)}"
             }, ensure_ascii=False, indent=2)
     
-    def cumplimiento_meta_vendedor(self, fecha: str) -> str:
+    def cumplimiento_meta_vendedor(self, rut_vendedor: str, fecha: str) -> str:
         """
         Función para obtener el cumplimiento de meta de un vendedor en una fecha específica
         
         Args:
+            rut_vendedor (str): RUT del vendedor
             fecha (str): Fecha en formato YYYY-MM-DD para consultar la meta
             
         Returns:
@@ -84,7 +84,7 @@ class VendedorVtTool(Toolkit):
             }
             
             payload = {
-                "rutVendedor": Config.RUT_VENDEDOR, # Usando un valor de configuración
+                "rutVendedor": rut_vendedor,
                 "fechaDetalle": fecha
             }
             
@@ -131,7 +131,7 @@ class VendedorVtTool(Toolkit):
         
         Args:
             rut_vendedor (str): RUT del vendedor
-            estados_pedido (List[str], optional): Lista de estados de pedido para filtrar
+            estados_pedido (List[str], optional): Lista de estados de pedido para filtrar (POR_FACTURAR, FACTURA_POR_SINCRONIZAR, POR_VENCER, POR_CONVERTIR)
             
         Returns:
             str: Información de los pedidos pendientes en formato JSON

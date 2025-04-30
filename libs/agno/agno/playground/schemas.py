@@ -153,6 +153,7 @@ class TeamGetResponse(BaseModel):
     response_model: Optional[str] = None
     storage: Optional[Dict[str, Any]] = None
     memory: Optional[Dict[str, Any]] = None
+    perfiles: Optional[List[str]] = None
 
     @classmethod
     def from_team(self, team: Team) -> "TeamGetResponse":
@@ -200,6 +201,7 @@ class TeamGetResponse(BaseModel):
                 else None
                 for member in team.members
             ],
+            perfiles=team.perfiles
         )
 
 

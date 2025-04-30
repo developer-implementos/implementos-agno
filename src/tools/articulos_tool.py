@@ -49,7 +49,7 @@ class ArticulosTool(Toolkit):
             # Configurar los headers
             headers = {
                 "Content-Type": "application/json",
-                "authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
             }
             
             # Realizar la solicitud POST
@@ -281,7 +281,7 @@ class ArticulosTool(Toolkit):
             return f"Error: {e}"
     def search_matriz_sku(self, sku: str) -> str:
         """
-        Información de Productos equivalentes/similares o matriz de un SKU específico.
+        Información de Productos equivalentes/similares/alternativos o matriz de un SKU específico.
         
         Args:
             sku (str): SKU de producto para buscar sus equivalentes o matriz.

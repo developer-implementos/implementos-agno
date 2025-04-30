@@ -66,6 +66,24 @@ Para levantar el playground se debe ejecutar el siguiente comando en la carpeta 
 python playground.py
 ```
 
+## Cartera objetivo
+
+Si quieres hacer pruebas de vendedor terreno o cartera objetivo, debes asignarte una cartera objetivo, en la conexión de mongo nube (.8) y colección "carteraObjetivo" ejecuta estas consultas, cambiando donde corresponda.
+
+```js
+db.getCollection("carteraObjetivo").deleteMany({codigoEmpleado: 1190})
+var data = db.getCollection("carteraObjetivo").find({codigoEmpleado: 1021, estadoVigente: 1}).toArray()
+
+var data2 = data.map(x => {
+    delete x._id;
+    x.codigoEmpleado = 1190;
+    x.nombreEmpleado = "JOSE ESPINOZA SALAS";
+    return x;
+});
+
+db.getCollection("carteraObjetivo").insertMany(data2)
+``` 
+
 ## Introduction
 
 [Agno](https://docs.agno.com) is a lightweight library for building Agents with memory, knowledge, tools and reasoning.

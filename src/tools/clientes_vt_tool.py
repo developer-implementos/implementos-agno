@@ -14,6 +14,7 @@ class ClientesVtTool(Toolkit):
     def __init__(self):
         super().__init__(name="clientes_vt_tool")
         # Registrar las funciones en el toolkit para que sean accesibles dinámicamente
+        self.register(self.obtener_clientes_cartera_objetivo)
         self.register(self.clientes_bloqueados)
         self.register(self.contactos_cliente)
         self.register(self.direcciones_cliente)
@@ -27,12 +28,12 @@ class ClientesVtTool(Toolkit):
         self.register(self.flota_cliente)
         self.register(self.pedidos_pendientes_por_estado)
 
-    def _obtener_ruts_cartera_objetivo(self, codigo_empleado: str) -> List[str]:
+    def _obtener_ruts_cartera_objetivo(self, codigo_empleado: int) -> List[str]:
         """
         Obtiene los RUTs de la cartera objetivo de un vendedor.
         
         Args:
-            codigo_empleado (str): Código del empleado
+            codigo_empleado (int): Código del empleado
             
         Returns:
             List[str]: Lista de RUTs de la cartera objetivo
@@ -40,7 +41,7 @@ class ClientesVtTool(Toolkit):
         try:
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
-            cartera_objetivo = db.CarteraObjetivo
+            cartera_objetivo = db.carteraObjetivo
             
             data = cartera_objetivo.aggregate([
                 {
@@ -62,6 +63,45 @@ class ClientesVtTool(Toolkit):
             
             ruts = [item["rut"] for item in result]
             return ruts
+        except Exception as e:
+            logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
+            return []
+        
+    def obtener_clientes_cartera_objetivo(self, codigo_empleado: int) -> str:
+        """
+        Obtiene los clientes de la cartera objetivo de un vendedor.
+        
+        Args:
+            codigo_empleado (int): Código del empleado
+            
+        Returns:
+            str: Información de los clientes de la cartera objetivo en formato JSON
+        """
+        try:
+            client = MongoClient(Config.MONGO_NUBE)
+            db = client.Implenet
+            cartera_objetivo = db.carteraObjetivo
+            
+            data = cartera_objetivo.aggregate([
+                {
+                    "$match": {
+                        "codigoEmpleado": codigo_empleado,
+                        "estadoVigente": 1
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "rut": "$rutCliente",
+                        "nombre": "$nombreCliente"
+                    }
+                }
+            ])
+            
+            result = list(data)
+            client.close()
+            
+            return json.dumps(result, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
             return []
@@ -388,12 +428,12 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def listado_clientes_co(self, cod_empleado: str) -> str:
+    def listado_clientes_co(self, cod_empleado: int) -> str:
         """
         Función para obtener el listado de clientes de la cartera objetivo
         
         Args:
-            cod_empleado (str): Código del empleado
+            cod_empleado (int): Código del empleado
             
         Returns:
             str: Listado de clientes de la cartera objetivo en formato JSON
@@ -401,7 +441,7 @@ class ClientesVtTool(Toolkit):
         try:
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
-            cartera_objetivo = db.CarteraObjetivo
+            cartera_objetivo = db.carteraObjetivo
             
             data = cartera_objetivo.aggregate([
                 {

@@ -4,9 +4,11 @@ from typing import List, Dict, Any, Optional, Union
 from agno.tools import Toolkit
 from agno.utils.log import log_debug, log_info, logger
 from config.config import Config
+from pymongo import MongoClient
 import io
 import base64
 from datetime import datetime
+from models.propuesta_model import ObtenerProductosPropuestaResponse, Articulo, PropuestaCliente
 
 class PropuestaTool(Toolkit):
     def __init__(self):
@@ -14,10 +16,9 @@ class PropuestaTool(Toolkit):
         # Registrar las funciones en el toolkit
         self.register(self.obtener_propuestas)
         self.register(self.obtener_propuesta)
-        self.register(self.obtener_productos_propuesta)
         self.register(self.generar_propuesta)
         self.register(self.generar_catalogo_propuesta)
-        self.register(self.obtener_pdf_catalogo)
+        # self.register(self.obtener_pdf_catalogo)
         
         # Constante de autenticación
         self.BASIC_AUTH = "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
@@ -104,135 +105,133 @@ class PropuestaTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
     
-    def obtener_productos_propuesta(
-        self, 
-        rut: str, 
-        sucursal: str, 
-        limite: int, 
-        uens_options: Optional[str] = None, 
-        origin_options: Optional[str] = None, 
-        marca_flota: Optional[str] = None, 
-        modelo_flota: Optional[str] = None, 
-        tipo_flota: Optional[str] = None, 
-        additional_options: Optional[str] = None
-    ) -> str:
-        """
-        Obtiene los productos de una propuesta
-        
-        Args:
-            rut (str): RUT del cliente
-            sucursal (str): Código de la sucursal
-            limite (int): Límite de productos a obtener
-            uens_options (Optional[str]): Opciones de UEN (ej: "BATERIAS,AGROINSUMOS")
-            origin_options (Optional[str]): Opciones de origen (ej: "RECOMMENDED,STOPPED_PURCHASING,VEHICLE_FLEET")
-            marca_flota (Optional[str]): Marca de la flota
-            modelo_flota (Optional[str]): Modelo de la flota
-            tipo_flota (Optional[str]): Tipo de flota
-            additional_options (Optional[str]): Opciones adicionales (ej: "INCLUDE_MATRIX")
-            
-        Returns:
-            str: Respuesta en formato JSON
-        """
-        try:
-            url = "https://b2b-api.implementos.cl/api/catalogo/propuestaCliente/especifica"
-            
-            headers = {
-                "Authorization": self.BASIC_AUTH
-            }
-            
-            # Crear formulario multipart
-            data = {
-                'rut': rut,
-                'sucursal': sucursal,
-                'limite': str(limite)
-            }
-            
-            # Añadir campos opcionales si existen
-            if uens_options:
-                data['uensOptions'] = uens_options
-            if origin_options:
-                data['originOptions'] = origin_options
-            if marca_flota:
-                data['marcaFlota'] = marca_flota
-            if modelo_flota:
-                data['modeloFlota'] = modelo_flota
-            if tipo_flota:
-                data['tipoFlota'] = tipo_flota
-            if additional_options:
-                data['additionalOptions'] = additional_options
-            
-            response = requests.post(url, headers=headers, data=data)
-            
-            if response.status_code == 200:
-                result = response.json()
-                log_debug(f"Se obtuvieron {result.get('cantidad', 0)} productos para la propuesta del cliente {rut}")
-                return json.dumps(result, ensure_ascii=False, indent=2)
-            else:
-                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
-                logger.warning(error_message)
-                return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
-                
-        except Exception as e:
-            error_message = f"Error al obtener productos para la propuesta del cliente {rut}: {e}"
-            logger.warning(error_message)
-            return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
-    
     def generar_propuesta(
-        self, 
-        tipo: str, 
-        tipo_entrega: str, 
-        sucursal: Dict[str, str], 
-        cliente: Dict[str, str], 
-        vendedor: Dict[str, Any], 
-        articulos: List[Dict[str, Any]]
+        self,
+        codigo_vendedor: int,
+        rut_cliente: str,
+        tipos_propuesta: Optional[List[str]] = None,
+        uens: Optional[List[str]] = None,
+        codigo_sucursal: str = 'SAN BRNRDO',
+        cantidad_propuesta: int = 50,
     ) -> str:
         """
         Genera una nueva propuesta
-        
+
         Args:
-            tipo (str): Tipo de propuesta
-            tipo_entrega (str): Tipo de entrega
-            sucursal (Dict[str, str]): Información de la sucursal {"codigo": "...", "nombre": "..."}
-            cliente (Dict[str, str]): Información del cliente {"rut": "...", "nombre": "..."}
-            vendedor (Dict[str, Any]): Información del vendedor
-            articulos (List[Dict[str, Any]]): Lista de artículos
-            
-        Returns:
-            str: Respuesta en formato JSON
+            codigo_vendedor(int): Código del vendedor
+            rut_cliente(str): Rut del cliente
+            tipos_propuesta(Optional[List[str]]): Tipo de propuesta: RECOMMENDED (Recomendados para ti), STOPPED_PURCHASING (Productos Fugados), VEHICLE_FLEET (Flota). Por defecto ninguno para incluir todos.
+            uens(Optional[List[str]]): Listado de UENs a incluir en la propuesta (Ejemplo: BATERIAS). Por defecto ninguno para incluir todas.
+            codigo_sucursal(str): Código de sucursal para aplicar precios de la propuesta. Defecto SAN BRNRDO
+            cantidad_propuesta(int): Cantidad de productos a contener en la propuesta. Defecto 50
         """
         try:
+            client = MongoClient(Config.MONGO_NUBE)
+            db = client.get_default_database()
+            usuarioAX = db.usuariosAX.find_one({"codEmpleado": codigo_vendedor})
+            cliente = db.clientes.find_one({"rut": rut_cliente}, {"_id": 0, "nombre": 1})
+            bodega = db.imp_bodegas.find_one({"codigo": codigo_sucursal}, {"_id": 0, "nombre": 1})
+
+            vendedor = {
+                "rut": usuarioAX.get("rut"),
+                "codEmpleado": int(usuarioAX.get("codEmpleado")),
+                "codUsuario": int(usuarioAX.get("codUsuario")),
+                "cuenta": usuarioAX.get("usuario").lower(),
+                "email": usuarioAX.get("email"),
+                "movil": usuarioAX.get("movil"),
+                "nombre": usuarioAX.get("nombre"),
+            }
+            
+            productosResponse = self._obtener_productos_propuesta(rut_cliente, codigo_sucursal, cantidad_propuesta, uens, tipos_propuesta)
+
+            if not productosResponse or productosResponse.error or not productosResponse.data or len(productosResponse.data) == 0:
+                logger.warning(f"No se encontraron productos a incluir en la propuesta")
+                return json.dumps({"ok": False, "mensaje": f"Ningún producto encontrado para incluir en la propuesta"}, ensure_ascii=False, indent=2)
+
+            articulos = []
+            for x in productosResponse.data:
+                for p in x.articulos:
+                    # Creamos una nueva instancia de Articulo desde ArticuloFull
+                    articulo = Articulo(
+                        sku=p.sku,
+                        nombre=p.nombre,
+                        cantidad=1,
+                        origenPropuesta=p.origenPropuesta,
+                        estado=p.estado,
+                        precio=p.precio
+                    )
+                    articulos.append(articulo)
+
             url = "https://b2b-api.implementos.cl/api/catalogo/propuestaCliente"
+            data = {
+                "cliente": {
+                    "rut": rut_cliente,
+                    "nombre": cliente.get("nombre"),
+                },
+                "sucursal": {
+                    "codigo": codigo_sucursal,
+                    "nombre": bodega.get("nombre"),
+                },
+                "tipo": 'especifica',
+                "tipoEntrega": 'RETIRO',
+                "vendedor": vendedor,
+                "articulos": articulos,
+            }
             
             headers = {
-                "Content-Type": "application/json",
                 "Authorization": self.BASIC_AUTH
             }
+
+            response = requests.post(url, headers=headers, data=data)
+            propuesta_json = response.json()
+
+            propuesta = PropuestaCliente.model_validate_json(propuesta_json)
             
-            payload = {
-                "tipo": tipo,
-                "tipoEntrega": tipo_entrega,
-                "sucursal": sucursal,
-                "cliente": cliente,
-                "vendedor": vendedor,
-                "articulos": articulos
+            respuesta = {
+                "folio_propuesta": propuesta.folio
             }
-            
-            response = requests.post(url, headers=headers, json=payload)
-            
-            if response.status_code == 200:
-                result = response.json()
-                log_debug(f"Se generó la propuesta para el cliente {cliente.get('rut', '')}")
-                return json.dumps(result, ensure_ascii=False, indent=2)
-            else:
-                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
-                logger.warning(error_message)
-                return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
-                
+
+            return json.dumps(respuesta, ensure_ascii=False, indent=2)
         except Exception as e:
-            error_message = f"Error al generar propuesta para el cliente {cliente.get('rut', '')}: {e}"
-            logger.warning(error_message)
-            return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
-    
+            logger.error(f"Error al obtener información del usuario: {str(e)}")
+            return json.dumps({
+                "ok": False,
+                "mensaje": f"Error al generar propuesta de cliente: {str(e)}"
+            }, ensure_ascii=False, indent=2)
+
+    def _obtener_productos_propuesta(
+        self,
+        rut_cliente: str,
+        sucursal: str,
+        limite: int,
+        uens: Optional[List[str]] = None,
+        tipos_propuesta: Optional[List[str]] = None,
+    ) -> ObtenerProductosPropuestaResponse:
+        url = "https://b2b-api.implementos.cl/api/catalogo/propuestaCliente/especifica"
+            
+        headers = {
+            "Authorization": self.BASIC_AUTH,
+            "Content-Type": "multipart/form-data"
+        }
+        
+        data = {
+            "rut": rut_cliente,
+            "sucursal": sucursal,
+            "limite": str(limite),
+            "uensOptions" : "",
+            "originOptions" : "",
+            "additionalOptions" : "INCLUDE_MATRIX",
+        }
+
+        if uens:
+            data["uensOptions"] = ",".join(uens)
+        if tipos_propuesta:
+            data["originOptions"] = ",".join(tipos_propuesta)
+
+        response = requests.post(url, headers=headers, data=data)
+        data = response.json()
+        return ObtenerProductosPropuestaResponse.model_validate_json(data)
+
     def generar_catalogo_propuesta(self, folio: int) -> str:
         """
         Genera un catálogo para una propuesta
@@ -277,7 +276,7 @@ class PropuestaTool(Toolkit):
         
         Args:
             folio (int): Folio de la propuesta
-            branch_code (str): Código de la sucursal
+            branch_code (str): Código de la sucursal. Por defecto: SAN BRNRDO
             
         Returns:
             str: Respuesta en formato JSON con el contenido del PDF en base64

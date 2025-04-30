@@ -313,13 +313,21 @@ class Message(BaseModel):
             _logger(f"Name: {self.name}")
         if self.tool_call_id:
             _logger(f"Tool call Id: {self.tool_call_id}")
+        if self.tool_name:
+            _logger(f"Tool Name: {self.tool_name}")
         if self.thinking:
             _logger(f"<thinking>\n{self.thinking}\n</thinking>")
         if self.content:
+        #     if isinstance(self.content, str) or isinstance(self.content, list):
+        #         _logger(self.content)
+        #     elif isinstance(self.content, dict):
+        #         _logger(json.dumps(self.content, indent=2))
             if isinstance(self.content, str) or isinstance(self.content, list):
-                _logger(self.content)
-            elif isinstance(self.content, dict):
-                _logger(json.dumps(self.content, indent=2))
+                try:
+                    _logger(json.dumps(json.loads(self.content)))
+                except:
+                    pass
+
         if self.tool_calls:
             tool_calls_list = ["Tool Calls:"]
             for tool_call in self.tool_calls:
