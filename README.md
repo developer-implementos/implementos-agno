@@ -42,7 +42,7 @@ Para instalar nuevos paquetes se debe usar los comandos:
 
 ```bat
 .\.venv\Scripts\activate
-pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4 markdown_pdf google google-cloud google-cloud-storage pandas pypdf aiofiles python-docx
+pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4 markdown_pdf google google-cloud google-cloud-storage pandas pypdf aiofiles python-docx sqlalchemy
 pip freeze > requirements.txt
 ```
 

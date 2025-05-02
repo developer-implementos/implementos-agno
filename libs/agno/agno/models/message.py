@@ -318,10 +318,10 @@ class Message(BaseModel):
         if self.thinking:
             _logger(f"<thinking>\n{self.thinking}\n</thinking>")
         if self.content:
-        #     if isinstance(self.content, str) or isinstance(self.content, list):
-        #         _logger(self.content)
-        #     elif isinstance(self.content, dict):
-        #         _logger(json.dumps(self.content, indent=2))
+            # if isinstance(self.content, str) or isinstance(self.content, list):
+            #     _logger(self.content)
+            # elif isinstance(self.content, dict):
+            #     _logger(json.dumps(self.content, indent=2))
             if isinstance(self.content, str) or isinstance(self.content, list):
                 try:
                     _logger(json.dumps(json.loads(self.content)))

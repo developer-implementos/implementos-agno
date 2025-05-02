@@ -17,7 +17,13 @@ class VendedorVtTool(Toolkit):
 
     def obtener_informacion_usuario(self, codigo_vendedor: int) -> str:
         """
-        Obtiene la información completa del usuario/vendedor
+        Obtiene los siguientes campos del vendedor para ser usados en otra tool:
+        - rut: RUT del vendedor
+        - nombre: Nombre completo
+        - email: Email de contacto
+        - movil: Número de celular
+        - usuario: Nombre de usuario (nombre_usuario_vendedor)
+        - vendedor_recid: ID interno del sistema
         
         Args:
             codigo_vendedor (int): Código del vendedor
@@ -41,12 +47,12 @@ class VendedorVtTool(Toolkit):
             usuario_info = {
                 "ok": True,
                 "data": {
-                    "codigo_empleado": auth_info.get("codigo_empleado", ""),
+                    # "codigo_empleado": auth_info.get("codigo_empleado", ""),
                     "vendedor_recid": auth_info.get("vendedor_recid", ""),
                     "rut": auth_info.get("rut", ""),
                     "usuario": auth_info.get("usuario", ""),
                     "nombre": auth_info.get("nombre", ""),
-                    "token": auth_info.get("token", ""),
+                    # "token": auth_info.get("token", ""),
                     "email": auth_info.get("email", ""),
                     "movil": auth_info.get("movil", ""),
                 }

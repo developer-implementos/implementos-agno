@@ -26,12 +26,12 @@ class ObtenerProductosPropuestaRequest(BaseModel):
 
 class Image(BaseModel):
     """Equivalente a la interfaz Image"""
-    _150: List[str] = Field(alias="150")
-    _250: List[str] = Field(alias="250")
-    _450: List[str] = Field(alias="450")
-    _600: List[str] = Field(alias="600")
-    _1000: List[str] = Field(alias="1000")
-    _2000: List[str] = Field(alias="2000")
+    img_150: List[str] = Field(alias="150")
+    img_250: List[str] = Field(alias="250")
+    img_450: List[str] = Field(alias="450")
+    img_600: List[str] = Field(alias="600")
+    img_1000: List[str] = Field(alias="1000")
+    img_2000: List[str] = Field(alias="2000")
     
     class Config:
         populate_by_name = True

@@ -139,8 +139,8 @@ Team_VT = Team(
     team_id="team_vt_01",
     name="Agente Vendedor Terreno",
     description="Agente especializado en apoyar a la venta y consultas de un vendedor en terreno.",
-    model=OpenAIChat(id="gpt-4o-mini", api_key=Config.OPENAI_API_KEY),
-    # model=OpenAIChat(id="gpt-4.1", api_key=Config.OPENAI_API_KEY),
+    # model=OpenAIChat(id="gpt-4o-mini", api_key=Config.OPENAI_API_KEY),
+    model=OpenAIChat(id="gpt-4.1", api_key=Config.OPENAI_API_KEY),
     mode="route",
     members=[
         Agente_VT,

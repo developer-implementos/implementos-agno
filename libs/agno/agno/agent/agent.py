@@ -2147,6 +2147,18 @@ class Agent:
             except Exception as e:
                 log_warning(f"Failed to resolve context for '{key}': {e}")
 
+    def load_user_memories(self) -> None:
+        self.memory = cast(AgentMemory, self.memory)
+        if self.memory and self.memory.create_user_memories:
+            if self.user_id is not None and self.memory.user_id is None:
+                self.memory.user_id = self.user_id
+
+            self.memory.load_user_memories()
+            if self.user_id is not None:
+                log_debug(f"Memories loaded for user: {self.user_id}")
+            else:
+                log_debug("Memories loaded")
+
     def get_agent_data(self) -> Dict[str, Any]:
         agent_data: Dict[str, Any] = {}
         if self.name is not None:
@@ -2410,6 +2422,7 @@ class Agent:
             else:
                 # New session, just reset the state
                 self.session_name = None
+            self.load_user_memories()
         return self.agent_session
 
     def write_to_storage(self, session_id: str, user_id: Optional[str] = None) -> Optional[AgentSession]:

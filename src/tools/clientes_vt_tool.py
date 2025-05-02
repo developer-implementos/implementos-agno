@@ -19,7 +19,7 @@ class ClientesVtTool(Toolkit):
         self.register(self.contactos_cliente)
         self.register(self.direcciones_cliente)
         self.register(self.facturas_cliente)
-        self.register(self.listado_clientes_co)
+        # self.register(self.listado_clientes_co)
         self.register(self.pedidos_pendientes_cliente)
         self.register(self.resumen_cliente)
         self.register(self.segmentos_cliente)
@@ -100,8 +100,13 @@ class ClientesVtTool(Toolkit):
             
             result = list(data)
             client.close()
+
+            final_result = {
+                "total_clientes": len(result),
+                "clientes": result
+            }
             
-            return json.dumps(result, ensure_ascii=False, indent=2, default=str)
+            return json.dumps(final_result, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
             return []
@@ -133,12 +138,12 @@ class ClientesVtTool(Toolkit):
         except Exception as err:
             return f"error running query: {err}"
         
-    def clientes_bloqueados(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
+    def clientes_bloqueados(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para buscar clientes bloqueados por sus RUTs
         
         Args:
-            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a buscar. Si no se proporciona, 
                                          se usan todos los RUTs de la cartera objetivo.
             
@@ -246,12 +251,12 @@ class ClientesVtTool(Toolkit):
             
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
-            clientes_ia = db.ClienteIA
+            clientes_ia = db.clientes
             
             data = clientes_ia.aggregate([
                 {
                     "$match": {
-                        "clienteId": rut_clean
+                        "rut": rut_clean
                     }
                 },
                 {
@@ -260,7 +265,7 @@ class ClientesVtTool(Toolkit):
                 {
                     "$project": {
                         "_id": 0,
-                        "rut_cliente": "$clienteId",
+                        "rut_cliente": "$rut",
                         "nombre": "$contactos.nombre",
                         "apellido": "$contactos.apellido",
                         "correo": "$contactos.correo",
@@ -297,12 +302,12 @@ class ClientesVtTool(Toolkit):
             
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
-            clientes_ia = db.ClienteIA
+            clientes_ia = db.clientes
             
             data = clientes_ia.aggregate([
                 {
                     "$match": {
-                        "clienteId": rut_clean
+                        "rut": rut_clean
                     }
                 },
                 {
@@ -311,7 +316,7 @@ class ClientesVtTool(Toolkit):
                 {
                     "$project": {
                         "_id": 0,
-                        "rut_cliente": "$clienteId",
+                        "rut_cliente": "$rut",
                         "nombre": "$nombre",
                         "tipo": "$direcciones.tipo",
                         "direccion": "$direcciones.direccionCompleta"
@@ -335,12 +340,12 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def facturas_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
+    def facturas_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las facturas pendientes de clientes
         
         Args:
-            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
             
@@ -528,12 +533,12 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def resumen_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
+    def resumen_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener el resumen de clientes
         
         Args:
-            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
             
@@ -552,9 +557,9 @@ class ClientesVtTool(Toolkit):
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
             
-            client = MongoClient(Config.MONGO_NUBE)
+            client = MongoClient(Config.MONGO_IA)
             db = client.Implenet
-            clientes_ia = db.ClienteIA
+            clientes_ia = db.clientes
             
             data = clientes_ia.aggregate([
                 {
@@ -567,11 +572,11 @@ class ClientesVtTool(Toolkit):
                 {
                     "$project": {
                         "_id": 0,
-                        "rut": "$clienteId",
+                        "rut": "$rut",
                         "nombre": "$nombre",
                         "credito": "$credito",
                         "credito_utilizado": "$creditoUtilizado",
-                        "facturas_pendientes": {"$size": "$facturasPendientes"},
+                        "facturas_pendientes_de_pago": {"$size": "$facturasPendientes"},
                         "ciclo_vida": "$cicloVida",
                         "bloqueo": "$bloqueo",
                         "tipo_bloqueo": "$tipoBloqueo"
@@ -591,12 +596,12 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def segmentos_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
+    def segmentos_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener los segmentos de clientes
         
         Args:
-            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
             
@@ -680,12 +685,12 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
     
-    def uen_fugadas_cliente(self, codigo_empleado: str, ruts: Optional[List[str]] = None) -> str:
+    def uen_fugadas_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las UEN fugadas de clientes
         
         Args:
-            codigo_empleado (str): Código del empleado para obtener su cartera objetivo
+            codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
             
@@ -706,12 +711,12 @@ class ClientesVtTool(Toolkit):
             
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
-            clientes_ia = db.ClienteIA
+            clientes_ia = db.clientes
             
             data = clientes_ia.aggregate([
                 {
                     "$match": {
-                        "clienteId": {
+                        "rut": {
                             "$in": ruts_clean
                         }
                     }
@@ -729,7 +734,7 @@ class ClientesVtTool(Toolkit):
                 {
                     "$project": {
                         "_id": 0,
-                        "rut": "$clienteId",
+                        "rut": "$rut",
                         "nombre": "$nombre",
                         "uen": "$resumenComercial.uen",
                         "estado": "$resumenComercial.estado"
@@ -766,7 +771,7 @@ class ClientesVtTool(Toolkit):
               nombreCliente as nombre, 
               documento as folio, 
               ov as ov, 
-              fecha as fecha, 
+              toString(toDate(fecha)) as fecha, 
               sku as sku, 
               uen as uen, 
               categoria as categoria, 

@@ -11,7 +11,7 @@ from agno.playground import Playground, serve_playground_app
 from agno.playground.settings import PlaygroundSettings
 
 # Src
-from agent.agent_basic import Agente_Basico
+from agent.agent_basic import Agente_Basico, Agente_Basico_02, Agente_Basico_03
 from agent.agent_ventas import Agente_Ventas
 from agent.agent_ventas_v2 import Agente_Ventas_V2
 from agent.agent_ventas_voice import Agente_Ventas_Voice
@@ -39,7 +39,10 @@ settings = PlaygroundSettings(
 
 app = Playground(
     agents=[
-        Agente_Basico,
+        # Agente_Basico,
+        # Agente_Basico_02,
+        # Agente_Basico_03,
+        Agente_VT,
         Agente_Ventas,
         Agente_Ventas_V2,
         Agente_Ventas_Voice,
@@ -50,10 +53,9 @@ app = Playground(
         Agente_Documentos,
         Agente_Ecommerce,
         Agente_Maestro_Mecanico,
-        Agente_VT,
     ],
     teams=[
-        Team_VT,
+        # Team_VT,
     ],
     settings=settings
 ).get_app(use_async=True)
