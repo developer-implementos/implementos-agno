@@ -34,7 +34,7 @@ os.environ["ANTHROPIC_API_KEY"] = Config.ANTHROPIC_API_KEY
 
 # Configura CORS personalizado
 settings = PlaygroundSettings(
-    cors_origin_list=["http://localhost:3000", "https://agentes.implementos.cl"]
+    cors_origin_list=["http://localhost:3000", "http://localhost:3001", "https://agentes.implementos.cl"]
 )
 
 app = Playground(
@@ -44,7 +44,7 @@ app = Playground(
         # Agente_Basico_03,
         Agente_VT,
         Agente_Ventas,
-        Agente_Ventas_V2,
+        # Agente_Ventas_V2,
         Agente_Ventas_Voice,
         Agente_Articulos,
         Agente_Cartera_Vt,

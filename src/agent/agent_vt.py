@@ -12,7 +12,7 @@ from tools.propuesta_tool import PropuestaTool
 from tools.catalogo_original_tool import CatalogoOriginalTool
 from tools.pedido_tool import PedidoTool
 from tools.carro_vt_tool import CarroVtTool
-from tools.data_ventas_tool import DataVentasTool
+from tools.data_ventas_vt_tool import DataVentasVTTool
 
 # Código vendedor: {user_id}
 
@@ -243,9 +243,6 @@ Si el usuario solicita el resumen o estado de un cliente (sin especificar), se d
 ### 5. Caracteristicas de Datos
 - Sucursal, uen, Categoria linea, sku. entan almacenados en mayuscula.
 - Para ranking evita las UEN: "SIN CLACOM", "ACCESORIOS Y EQUIPAMIENTOS AGRICOLAS", "RIEGO", "ZSERVICIOS DE ADMINISTRACION E INSUMOS"
-- totalMargenItem es la Contribución
-- Costo = totalNetoItem - Contribución
-- Margen = (Venta - Costo)/Venta en porcentaje
 - Formato para valores monetarios: punto de miles y sin decimal
 - NUNCA REALIZAR QUERY QUE PERMITAN DEVOLVER DEMASIADOS DATOS, PREFIERE AGRUPACIONES
 - LIMITA SALIDAS A LIMIT 100
@@ -259,8 +256,6 @@ Si el usuario solicita el resumen o estado de un cliente (sin especificar), se d
     + CORRECTO: SUM(totalMargenItem) / nullIf(SUM(totalNetoItem), 0) * 100
     + INCORRECTO: SELECT sku, margen_porcentual FROM tabla GROUP BY sku
 - DICCIONARIO DE CAMPOS CALCULADOS:
-    + margen: "totalMargenItem"
-    + margenPorcentual: "((totalMargenItem) / nullIf(totalNetoItem, 0)) * 100"
     + descuentoPorcentual: "(descuento / nullIf(totalNetoItem + descuento, 0)) * 100"
     + monto: "totalNetoItem"
     + cantidad_ventas: "uniqExact(documento)"
@@ -407,7 +402,7 @@ Agente_VT = Agent(
       CatalogoOriginalTool(),
       PedidoTool(),
       CarroVtTool(),
-      DataVentasTool(),
+      DataVentasVTTool(),
     ],
     stream_intermediate_steps=False,
     show_tool_calls=True,
