@@ -44,7 +44,7 @@ app = Playground(
         # Agente_Basico_03,
         Agente_VT,
         Agente_Ventas,
-        # Agente_Ventas_V2,
+        Agente_Ventas_V2,
         Agente_Ventas_Voice,
         Agente_Articulos,
         Agente_Cartera_Vt,
