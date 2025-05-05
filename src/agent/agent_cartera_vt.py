@@ -6,6 +6,7 @@ from markdown_pdf import Section
 from google.cloud import storage
 from agno.agent import Agent
 from agno.models.anthropic import Claude
+from agno.models.openai import OpenAIChat
 from agno.embedder.openai import OpenAIEmbedder
 from qdrant_client import QdrantClient
 from config.config import Config
@@ -326,12 +327,7 @@ def markdown_pdf(
         print(f"Error al generar o subir el PDF: {str(e)}")
         return f"Error: {str(e)}"
 
-Agente_Cartera_Vt = Agent(
-    name="Especialista Carteras VT",
-    agent_id="vendedores_terreno_01",
-    model=Claude(id="claude-3-7-sonnet-20250219",temperature=0.2),
-    description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
-    instructions=[
+instructions = [
         """
 Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor específico. Analizar el historial de compra de su cartera utilizando la base de datos implementos y la tabla ventasrealtime en ClickHouse, puedes analizar schemas y realizar querys no uses caracteres en nombres como ñ tildes etc.
 
@@ -452,7 +448,14 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
     - Ante ambigüedades solicita datos específicos (períodos, vendedor específico)
     - ERROR CRÍTICO: Nunca compares períodos completos con parciales
 """
-    ],
+    ]
+
+Agente_Cartera_Vt_Analisis = Agent(
+    name="Especialista Carteras VT Analisis",
+    agent_id="vendedores_terreno_01",
+    model=Claude(id="claude-3-7-sonnet-20250219",temperature=0.2),
+    description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
+    instructions=instructions,
     tools=[DataVentasTool(),ClientesTool(),buscar_cartera,markdown_pdf,buscar_clacom],
     add_datetime_to_instructions=True,
     add_history_to_messages=True,
@@ -463,3 +466,22 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
     storage=MongoStorage,
     perfiles=["1", "3", "5", "9"]
 )
+
+Agente_Cartera_Vt = Agent(
+    name="Especialista Carteras VT",
+    agent_id="vendedores_terreno_02",
+    model=OpenAIChat(id="gpt-4.1",api_key=Config.OPENAI_API_KEY,temperature=0.2),
+    description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
+    instructions=instructions,
+    tools=[DataVentasTool(),ClientesTool(),buscar_cartera,markdown_pdf,buscar_clacom],
+    add_datetime_to_instructions=True,
+    add_history_to_messages=True,
+    num_history_responses=6,
+    markdown=True,
+    stream=True,
+    debug_mode=False,
+    storage=MongoStorage,
+    perfiles=["1", "3", "5", "9"]
+)
+
+

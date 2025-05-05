@@ -16,7 +16,7 @@ from agent.agent_ventas import Agente_Ventas
 from agent.agent_ventas_v2 import Agente_Ventas_V2
 from agent.agent_ventas_voice import Agente_Ventas_Voice
 from agent.agent_articulos import Agente_Articulos
-from agent.agent_cartera_vt import Agente_Cartera_Vt
+from agent.agent_cartera_vt import Agente_Cartera_Vt, Agente_Cartera_Vt_Analisis
 from agent.agent_clientes_vt import Agente_Clientes_Vt
 from agent.agent_clientes import Agente_Clientes
 from agent.agent_documentos import Agente_Documentos
@@ -47,6 +47,7 @@ app = Playground(
         Agente_Ventas_V2,
         Agente_Ventas_Voice,
         Agente_Articulos,
+        Agente_Cartera_Vt_Analisis,
         Agente_Cartera_Vt,
         Agente_Clientes_Vt,
         Agente_Clientes,
