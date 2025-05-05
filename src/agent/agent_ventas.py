@@ -384,6 +384,7 @@ Antes de entregar la respuesta, verifica explícitamente
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
+        enable_session_summaries=True,
         perfiles=["1", "5", "9"],
     )
 

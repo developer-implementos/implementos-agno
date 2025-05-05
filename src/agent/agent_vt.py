@@ -412,5 +412,6 @@ Agente_VT = Agent(
     add_datetime_to_instructions=True,
     debug_mode=True,
     storage=MongoStorage,
+    enable_session_summaries=True,
     perfiles=["1", "5", "7", "9"]
 )
