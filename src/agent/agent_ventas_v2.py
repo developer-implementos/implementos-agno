@@ -353,7 +353,7 @@ Antes de entregar la respuesta, verifica explícitamente
     knowledge_base.load(recreate=False)
     
     Agente_Ventas_V2 = Agent(
-        name="Agente de Ventas V2",
+        name="Agente de Ventas",
         agent_id="ventas_02",
         model=model,
         knowledge=knowledge_base,
