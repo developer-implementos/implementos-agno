@@ -385,7 +385,7 @@ Antes de entregar la respuesta, verifica explícitamente
         stream_intermediate_steps=False,
         add_state_in_messages=True,
         enable_session_summaries=True,
-        perfiles=["1", "5", "9"],
+        perfiles=["1", "3", "5", "9"],
     )
 
     return Agente_Ventas_V2
