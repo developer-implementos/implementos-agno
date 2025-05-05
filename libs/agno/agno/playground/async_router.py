@@ -25,6 +25,7 @@ from agno.playground.schemas import (
     AgentGetResponse,
     AgentModel,
     AgentRenameRequest,
+    AgentAutoRenameRequest,
     AgentSessionsResponse,
     MemoryResponse,
     TeamGetResponse,
@@ -436,6 +437,24 @@ def get_async_playground_router(
         for session in all_agent_sessions:
             if session.session_id == session_id:
                 agent.rename_session(body.name, session_id=session_id)
+                return JSONResponse(content={"message": f"successfully renamed session {session.session_id}"})
+
+        return JSONResponse(status_code=404, content="Session not found.")
+    
+    @playground_router.post("/agents/{agent_id}/sessions/{session_id}/auto_rename")
+    async def auto_rename_agent_session(agent_id: str, session_id: str, body: AgentAutoRenameRequest):
+        agent = get_agent_by_id(agent_id, agents)
+        if agent is None:
+            return JSONResponse(status_code=404, content=f"couldn't find agent with {agent_id}")
+
+        if agent.storage is None:
+            return JSONResponse(status_code=404, content="Agent does not have storage enabled.")
+
+        all_agent_sessions: List[AgentSession] = agent.storage.get_all_sessions(user_id=body.user_id)  # type: ignore
+        for session in all_agent_sessions:
+            if session.session_id == session_id:
+                agent.session_id = session_id
+                agent.auto_rename_session_v2()
                 return JSONResponse(content={"message": f"successfully renamed session {session.session_id}"})
 
         return JSONResponse(status_code=404, content="Session not found.")

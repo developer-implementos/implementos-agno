@@ -34,7 +34,7 @@ os.environ["ANTHROPIC_API_KEY"] = Config.ANTHROPIC_API_KEY
 
 # Configura CORS personalizado
 settings = PlaygroundSettings(
-    cors_origin_list=["http://localhost:3000", "http://localhost:3001", "https://agentes.implementos.cl"]
+    cors_origin_list=["http://localhost:3000", "http://localhost:3001", "https://agentes.implementos.cl", "*"]
 )
 
 app = Playground(

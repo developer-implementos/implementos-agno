@@ -3529,8 +3529,9 @@ class Agent:
 
         system_message = Message(
             role=self.system_message_role,
-            content="Please provide a suitable name for this conversation in maximum 5 words. "
-            "Remember, do not exceed 5 words.",
+            # content="Please provide a suitable name for this conversation in maximum 5 words. "
+            # "Remember, do not exceed 5 words.",
+            content="Por favor proporciona un nombre adecuado para esta conversación en máximo 5 palabras. Recuerda, no excedas las 5 palabras.",
         )
         user_message = Message(role=self.user_message_role, content=gen_session_name_prompt)
         generate_name_messages = [system_message, user_message]
@@ -3545,6 +3546,24 @@ class Agent:
         return content.replace('"', "").strip()
 
     def auto_rename_session(self) -> None:
+        """Automatically rename the session and save to storage"""
+
+        if self.session_id is None:
+            raise Exception("Session ID is not set")
+
+        # -*- Read from storage
+        self.read_from_storage(session_id=self.session_id, user_id=self.user_id)  # type: ignore
+        # -*- Generate name for session
+        generated_session_name = self.generate_session_name(session_id=self.session_id)
+        log_debug(f"Generated Session Name: {generated_session_name}")
+        # -*- Rename thread
+        self.session_name = generated_session_name
+        # -*- Save to storage
+        self.write_to_storage(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+        # -*- Log Agent Session
+        self._log_agent_session(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+
+    def auto_rename_session_v2(self) -> None:
         """Automatically rename the session and save to storage"""
 
         if self.session_id is None:

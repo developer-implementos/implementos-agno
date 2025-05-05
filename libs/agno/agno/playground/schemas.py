@@ -87,6 +87,9 @@ class AgentRenameRequest(BaseModel):
     name: str
     user_id: str
 
+class AgentAutoRenameRequest(BaseModel):
+    user_id: str
+
 
 class AgentSessionsResponse(BaseModel):
     title: Optional[str] = None
