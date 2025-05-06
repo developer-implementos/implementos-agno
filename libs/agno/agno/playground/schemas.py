@@ -96,6 +96,8 @@ class AgentSessionsResponse(BaseModel):
     session_id: Optional[str] = None
     session_name: Optional[str] = None
     created_at: Optional[int] = None
+    agent_id: Optional[str] = None
+    agent_name: Optional[str] = None
 
 
 class MemoryResponse(BaseModel):

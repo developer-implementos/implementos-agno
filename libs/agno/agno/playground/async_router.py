@@ -381,6 +381,9 @@ def get_async_playground_router(
                     session_id=session.session_id,
                     session_name=session.session_data.get("session_name") if session.session_data else None,
                     created_at=session.created_at,
+                    # Campos nuevos
+                    agent_id=session.agent_id,
+                    agent_name=session.agent_data.get("name") if session.agent_data else None,
                 )
             )
         return agent_sessions
@@ -440,7 +443,7 @@ def get_async_playground_router(
                 return JSONResponse(content={"message": f"successfully renamed session {session.session_id}"})
 
         return JSONResponse(status_code=404, content="Session not found.")
-    
+
     @playground_router.post("/agents/{agent_id}/sessions/{session_id}/auto_rename")
     async def auto_rename_agent_session(agent_id: str, session_id: str, body: AgentAutoRenameRequest):
         agent = get_agent_by_id(agent_id, agents)
