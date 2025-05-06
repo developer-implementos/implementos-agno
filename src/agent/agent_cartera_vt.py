@@ -29,17 +29,17 @@ def buscar_clacom(text: str):
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
         )
-        
+
         # Obtener el embedding del texto de búsqueda
         query_embedding = embedder.get_embedding(text)
-        
+
         # Buscar en Qdrant
         results = qdrant_client.search(
             collection_name="clacom",
             query_vector=query_embedding,
             limit=10,
         )
-        
+
         # Formatear los resultados como lista de diccionarios
         resultsData = [
             {
@@ -47,21 +47,21 @@ def buscar_clacom(text: str):
                 "payload": hit.payload
             } for hit in results
         ]
-  
+
         if not resultsData:
             return json.dumps([], ensure_ascii=False, indent=2)
-            
+
         # Convertir a JSON con formato adecuado para caracteres especiales
         json_result = json.dumps(resultsData, ensure_ascii=False, indent=2)
         return json_result
-    
+
     except Exception as e:
         print(f"Error durante la búsqueda en la base de datos vectorial: {str(e)}")
-        return None 
-    
+        return None
+
 def buscar_cartera(texto_vendedor: str):
     """Búsqueda de clientes asignados a un vendedor
-    
+
     Args:
         texto_vendedor (str): texto para buscar vendedor (nombre o código)
     Returns:
@@ -72,17 +72,17 @@ def buscar_cartera(texto_vendedor: str):
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
         )
-        
+
         # Obtener el embedding del texto de búsqueda
         query_embedding = embedder.get_embedding(texto_vendedor)
-        
+
         # Buscar en Qdrant
         results = qdrant_client.search(
             collection_name="carteraObjetivo",
             query_vector=query_embedding,
             limit=1,
         )
-        
+
         # Si no hay resultados, devolver un objeto vacío
         if not results:
             return json.dumps({
@@ -90,7 +90,7 @@ def buscar_cartera(texto_vendedor: str):
                 "nombreVendedor": None,
                 "rutClientes": []
             }, ensure_ascii=False, indent=2)
-        
+
         # Extraer la información relevante del primer resultado
         vendedor_data = results[0].payload
         resultado_simplificado = {
@@ -101,11 +101,11 @@ def buscar_cartera(texto_vendedor: str):
             "rutClientes": [cliente.get("rutCliente") for cliente in vendedor_data.get("clientes", [])],
             "total_clientes": vendedor_data.get("total_clientes", 0)
         }
-                
+
         # Convertir a JSON con formato adecuado para caracteres especiales
         json_result = json.dumps(resultado_simplificado, ensure_ascii=False, indent=2)
         return json_result
-    
+
     except Exception as e:
         print(f"Error durante la búsqueda en la base de datos vectorial: {str(e)}")
         return None
@@ -113,11 +113,11 @@ def buscar_cartera(texto_vendedor: str):
 def upload_to_gcs(pdf_buffer, file_name):
     """
     Sube un archivo PDF a Google Cloud Storage.
-    
+
     Args:
         pdf_buffer (bytes): Contenido del PDF en bytes
         file_name (str): Nombre del archivo a guardar en GCS
-        
+
     Returns:
         str: URL pública del archivo subido
     """
@@ -126,30 +126,30 @@ def upload_to_gcs(pdf_buffer, file_name):
         storage_client = storage.Client.from_service_account_json(
             os.path.join(os.path.dirname(__file__), 'key-storage.json')
         )
-        
+
         # Definir el nombre del bucket
         bucket_name = 'imagenes_catalogo_publico'
-        
+
         # Obtener el bucket
         bucket = storage_client.bucket(bucket_name)
-        
+
         # Crear el objeto blob (archivo) en el bucket
         blob = bucket.blob(file_name)
-        
+
         # Configurar metadatos del archivo
         blob.content_type = 'application/pdf'
         blob.cache_control = 'no-cache'
-        
+
         # Subir el contenido del archivo
         blob.upload_from_string(
-            pdf_buffer, 
+            pdf_buffer,
             content_type='application/pdf'
         )
-        
+
         # Generar URL pública
         public_url = f"https://storage.googleapis.com/{bucket_name}/{file_name}"
         return public_url
-    
+
     except Exception as e:
         print(f"Error al subir el archivo: {str(e)}")
         raise e
@@ -162,13 +162,13 @@ def markdown_pdf(
 ) -> str:
     """
     Convierte datos markdown a PDF y opcionalmente lo sube a Google Cloud Storage
-    
+
     Args:
         markdown_content (str): datos completos en markdown
         title (str): título del documento PDF
         filename (str, optional): nombre del archivo PDF. Si es None, se genera automáticamente.
         upload_to_cloud (bool): Si es True, sube el archivo a GCS en lugar de guardarlo localmente
-        
+
     Returns:
         str: URL pública del PDF en GCS o ruta local del archivo PDF
     """
@@ -181,41 +181,41 @@ def markdown_pdf(
             filename = f"{safe_title}_{timestamp}.pdf"
         elif not filename.endswith('.pdf'):
             filename += '.pdf'
-        
+
 
         custom_css = """
     @page {
         size: A4 landscape; /* Formato apaisado para mayor ancho */
         margin: 1.5cm; /* Márgenes uniformes */
     }
-    
+
     body {
         font-family: 'Helvetica', 'Arial', sans-serif;
         font-size: 11pt; /* Tamaño de letra ligeramente reducido para mejor ajuste */
         line-height: 1.4;
         color: #333;
     }
-    
+
     /* Estilos para títulos */
     h1, h2, h3, h4, h5, h6 {
         page-break-after: avoid; /* Evita saltos de página después de títulos */
         page-break-inside: avoid; /* Evita que un título se divida entre páginas */
     }
-    
+
     h1 {
         font-size: 20pt;
         color: #1a5276;
         margin-top: 15pt;
         margin-bottom: 10pt;
     }
-    
+
     h2 {
         font-size: 16pt;
         color: #2874a6;
         margin-top: 12pt;
         margin-bottom: 8pt;
     }
-    
+
     /* Estilos para tablas optimizados */
     table {
         width: 100%;
@@ -224,7 +224,7 @@ def markdown_pdf(
         page-break-inside: avoid; /* Intenta evitar que las tablas se corten entre páginas */
         font-size: 10pt; /* Texto más pequeño en tablas para mejor ajuste */
     }
-    
+
     th {
         background-color: #f2f2f2;
         font-weight: bold;
@@ -232,51 +232,51 @@ def markdown_pdf(
         padding: 6pt;
         border: 1pt solid #ddd;
     }
-    
+
     td {
         padding: 6pt;
         border: 1pt solid #ddd;
         word-wrap: break-word; /* Permite que el texto se ajuste dentro de las celdas */
         max-width: 250pt; /* Limita el ancho máximo de las celdas */
     }
-    
+
     tr:nth-child(even) {
         background-color: #f9f9f9;
     }
-    
+
     /* Otros elementos */
     p {
         margin-bottom: 8pt;
     }
-    
+
     ul, ol {
         margin-left: 15pt;
         margin-bottom: 8pt;
         page-break-inside: avoid; /* Evita que las listas se corten entre páginas */
     }
-    
+
     li {
         margin-bottom: 4pt;
     }
-    
+
     a {
         color: #3498db;
         text-decoration: underline;
     }
-    
+
     /* Evitar que las imágenes se corten */
     img {
         max-width: 100%;
         page-break-inside: avoid;
     }
-    
+
     /* Ajuste para códigos y bloques de texto */
     pre, code {
         white-space: pre-wrap; /* Permite que el código se ajuste */
         word-wrap: break-word;
         font-size: 9pt;
     }
-    
+
     /* Estilos para separadores horizontales */
     hr {
         border: none;
@@ -286,13 +286,13 @@ def markdown_pdf(
         page-break-after: avoid;
     }
     """
-    
+
     # Crear el documento PDF
         pdf = MarkdownPdf(toc_level=2)
-        
+
         # Configurar metadatos del documento
         pdf.meta["title"] = title
-        
+
         # Crear una sección con configuración personalizada
         section = Section(
             text=markdown_content,
@@ -300,18 +300,18 @@ def markdown_pdf(
             paper_size="A4",  # Tamaño del papel
             borders=(50, 50, -50, -50)  # Márgenes más amplios para mejor legibilidad
         )
-        
+
         # Añadir la sección al PDF con el CSS personalizado
         pdf.add_section(section, user_css=custom_css)
             # Añadir la sección con contenido markdown
-   
-        
+
+
         if upload_to_cloud:
             # Crear un buffer en memoria para el PDF
             pdf_buffer = BytesIO()
             pdf.save(pdf_buffer)
             pdf_buffer.seek(0)
-            
+
             # Subir el PDF a Google Cloud Storage
             public_url = upload_to_gcs(pdf_buffer.getvalue(), filename)
             return public_url
@@ -322,7 +322,7 @@ def markdown_pdf(
             file_path = os.path.join(save_path, filename)
             pdf.save(file_path)
             return str(file_path)
-    
+
     except Exception as e:
         print(f"Error al generar o subir el PDF: {str(e)}")
         return f"Error: {str(e)}"
@@ -339,7 +339,7 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
     - Para consultas SIMPLES:
         + Ejecuta SOLO las queries necesarias básicas
         + Omite análisis multidimensionales y segmentaciones avanzadas
-        + Responde directamente con los datos solicitados en formato tabla 
+        + Responde directamente con los datos solicitados en formato tabla
         + Limita los pasos de procesamiento al mínimo necesario
         + Ofrece al final la posibilidad de profundizar: "¿Deseas un análisis más detallado de esta cartera?"
 
@@ -405,11 +405,11 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
         + INCORRECTO: SELECT sku, margen_porcentual FROM tabla GROUP BY sku
 
     - DICCIONARIO DE CAMPOS CALCULADOS:
-        + margen: "totalMargenItem" 
-        + margenPorcentual: "((totalMargenItem) / nullIf(totalNetoItem, 0)) * 100" 
-        + descuentoPorcentual: "(descuento / nullIf(totalNetoItem + descuento, 0)) * 100" 
-        + monto: "totalNetoItem" 
-        + cantidad_ventas: "uniqExact(documento)" 
+        + margen: "totalMargenItem"
+        + margenPorcentual: "((totalMargenItem) / nullIf(totalNetoItem, 0)) * 100"
+        + descuentoPorcentual: "(descuento / nullIf(totalNetoItem + descuento, 0)) * 100"
+        + monto: "totalNetoItem"
+        + cantidad_ventas: "uniqExact(documento)"
         + cantidad_vendida: "sum(cantidad)"
 
     - TRANSFORMACIONES DE FECHAS: No aplicar funciones de transformación directamente en GROUP BY
@@ -437,9 +437,9 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
 
 ### Proceso y comunicación:
 - Todo proceso interno de consulta debe ser invisible para el usuario
-- Errores en el proceso de uso de tools no deben ser informados al usuario 
-- No indique la clasificacion al usuario de su pregunta (SIMPLES-COMPLEJAS) en cambio puedes indicar 
-    - te dare la informacion precisa que necesitas. O similares a este ejemplo 
+- Errores en el proceso de uso de tools no deben ser informados al usuario
+- No indique la clasificacion al usuario de su pregunta (SIMPLES-COMPLEJAS) en cambio puedes indicar
+    - te dare la informacion precisa que necesitas. O similares a este ejemplo
     - realizare un analisis para entregar un mejor respuestas. O similares a este ejemplo
 
 ### Evita errores:
@@ -450,10 +450,10 @@ Tu trabajo es Analizar exhaustivamente la cartera de clientes de un vendedor esp
 """
     ]
 
-Agente_Cartera_Vt_Analisis = Agent(
-    name="Especialista Carteras VT Analisis",
+Agente_Cartera_Vt = Agent(
+    name="Especialista Carteras VT",
     agent_id="vendedores_terreno_01",
-    model=Claude(id="claude-3-7-sonnet-20250219",temperature=0.2),
+    model=OpenAIChat(id="gpt-4.1",api_key=Config.OPENAI_API_KEY,temperature=0.2),
     description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
     instructions=instructions,
     tools=[DataVentasTool(),ClientesTool(),buscar_cartera,markdown_pdf,buscar_clacom],
@@ -467,10 +467,10 @@ Agente_Cartera_Vt_Analisis = Agent(
     perfiles=["1", "3", "5", "9"]
 )
 
-Agente_Cartera_Vt = Agent(
+Agente_Cartera_Vt_DeepSearch = Agent(
     name="Especialista Carteras VT",
-    agent_id="vendedores_terreno_02",
-    model=OpenAIChat(id="gpt-4.1",api_key=Config.OPENAI_API_KEY,temperature=0.2),
+    agent_id="vendedores_terreno_01_deepsearch",
+    model=Claude(id="claude-3-7-sonnet-20250219",temperature=0.2,api_key=Config.ANTHROPIC_API_KEY),
     description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
     instructions=instructions,
     tools=[DataVentasTool(),ClientesTool(),buscar_cartera,markdown_pdf,buscar_clacom],
@@ -481,7 +481,7 @@ Agente_Cartera_Vt = Agent(
     stream=True,
     debug_mode=False,
     storage=MongoStorage,
-    perfiles=["1", "3", "5", "9"]
+    perfiles=[]
 )
 
 

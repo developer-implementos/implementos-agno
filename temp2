@@ -1,0 +1,163 @@
+- Detalle Vendedor
+POST https://b2b-api.implementos.cl/api/mobile/obtenerDetalleVendedor
+{"rutVendedor":"13283927-1","fechaDetalle":"2025-05-06T04:00:00.000Z"}
+Respuesta:
+[
+    {
+        "codVendedor": "1021",
+        "rutVendedor": "13283927-1",
+        "nombreVendedor": "CRISTIAN SEPULVEDA",
+        "anno": 2025,
+        "mes": 5,
+        "zona": "CENTRO",
+        "meta": 104000000,
+        "metaDia": 4803695,
+        "metaAcumulada": 15996305,
+        "venta": 5054737,
+        "ventaCO": 4827855,
+        "ventaCA": 226882,
+        "ventaDiaCO": 299429,
+        "ventaDiaCA": 0,
+        "ventaMetaDia": 299429,
+        "ventaMetaAcumulada": 5054737,
+        "detalles": 68,
+        "detallesProm": 2,
+        "documentos": 43,
+        "documentosDia": 2,
+        "documentosSinFact": 6,
+        "totalCO": 49,
+        "clienteDia": 2,
+        "clienteCO": 12,
+        "clienteCODia": 2,
+        "cantidadSKU": 54,
+        "difMetaDia": -4504266,
+        "VisitasCreadas": 0,
+        "VisitasCreadasMes": 0,
+        "VisitasConfirmadas": 0,
+        "VisitasConfirmadasMes": 0,
+        "CotizacionesCreadas": 1,
+        "CotizacionesCreadasMes": 33,
+        "ClientescVisita": 0
+    }
+]
+
+- Resumen documentos vendedor
+POST https://b2b-api.implementos.cl/api/mobile/obtenerDocumentos
+{"rutVendedor":"13283927-1","fechainicio":"2025-05-01T04:00:00.000Z","fechafin":"2025-06-01T03:59:59.999Z"}
+Respuesta:
+{
+    "error": false,
+    "msg": "Ok",
+    "data": {
+        "total": 77,
+        "documento": 45,
+        "montodoc": 6941374,
+        "sinfactura": 8,
+        "montoSinFactura": 1886637,
+        "cotizacion": 25,
+        "montoCotizacion": 9583408,
+        "totalfac": 37,
+        "montofac": 5054737,
+        "promedio_dia": "9.25",
+        "monto_promedio_mes": "136614.51",
+        "documentodia": 3,
+        "monto_promedio_dia": "99809.67"
+    },
+    "factura_dia": [
+        {
+            "RutCliente": "76107258-7",
+            "OV": "OV-5753005/OC-no",
+            "Fecha": "2025-05-06T00:00:00",
+            "ESTADO": "FACTURADO",
+            "NOMBRECLIENTE": "ROMAN-GROUP SPA",
+            "TotalNeto": 318992,
+            "Totalbruto": 379600,
+            "tipoCartera": null
+        },
+        {
+            "RutCliente": "79695460-4",
+            "OV": "OV-5753939/OC-NO",
+            "Fecha": "2025-05-06T00:00:00",
+            "ESTADO": "FACTURADO",
+            "NOMBRECLIENTE": "TRANSPORTES L MORA LTDA",
+            "TotalNeto": 70092,
+            "Totalbruto": 83409,
+            "tipoCartera": null
+        },
+        {
+            "RutCliente": "79695460-4",
+            "OV": "OV-5754099",
+            "Fecha": "2025-05-06T00:00:00",
+            "ESTADO": "FACTURADO",
+            "NOMBRECLIENTE": "TRANSPORTES L MORA LTDA",
+            "TotalNeto": -89655,
+            "Totalbruto": -106689,
+            "tipoCartera": null
+        }
+    ]
+}
+
+- Ventas vendedor por uen
+POST https://b2b-api.implementos.cl/api/mobile/obtenerVentasVendedorUENmes
+{"rutVendedor":"13283927-1","fechaDetalle":"2025-05-06T04:00:00.000Z"}
+Respuesta:
+[
+    {
+        "value": 109289,
+        "name": "FILTROS"
+    },
+    {
+        "value": 124504,
+        "name": "REFRIGERANTES AGUAS Y UREA"
+    },
+    {
+        "value": 115950,
+        "name": "PULMONES Y BOLSAS DE AIRE"
+    },
+    {
+        "value": 191025,
+        "name": "LLANTAS NEUMATICOS Y ACCESORIOS"
+    },
+    {
+        "value": 110581,
+        "name": "TEMPORADA EVENTOS ESPECIALES"
+    },
+    {
+        "value": 373225,
+        "name": "SISTEMA DE FRENOS"
+    },
+    {
+        "value": 193377,
+        "name": "COMPONENTES PARA EQUIPOS DE CARGA"
+    },
+    {
+        "value": 311125,
+        "name": "RODADO"
+    },
+    {
+        "value": 1287839,
+        "name": "BATERIAS"
+    },
+    {
+        "value": 247108,
+        "name": "ILUMINACION Y ACCESORIOS"
+    },
+    {
+        "value": 639070,
+        "name": "SEGURIDAD VIAL E INDUSTRIAL"
+    },
+    {
+        "value": 316537,
+        "name": "ENGANCHE"
+    },
+    {
+        "value": 7168,
+        "name": "ACCESORIOS Y CUIDADO AUTOMOTRIZ"
+    },
+    {
+        "value": 728510,
+        "name": "CONTROL DE CARGA"
+    }
+]
+
+

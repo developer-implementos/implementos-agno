@@ -219,11 +219,24 @@ def get_async_playground_router(
         session_id: Optional[str] = Form(None),
         user_id: Optional[str] = Form(None),
         files: Optional[List[UploadFile]] = File(None),
+        isDeepSearchActive: bool = Form(False),
     ):
+        agent_id_original = agent_id
+        if isDeepSearchActive:
+            agent_id = agent_id + "_deepsearch"
+
         logger.debug(f"AgentRunRequest: {message} {session_id} {user_id} {agent_id}")
         agent = get_agent_by_id(agent_id, agents)
+
         if agent is None:
-            raise HTTPException(status_code=404, detail="Agent not found")
+            if isDeepSearchActive:
+                agent_id = agent_id_original
+                agent = get_agent_by_id(agent_id, agents)
+                if agent is None:
+                    raise HTTPException(status_code=404, detail="Agent not found")
+            else:
+                raise HTTPException(status_code=404, detail="Agent not found")
+
 
         if session_id is not None and session_id != "":
             logger.debug(f"Continuing session: {session_id}")

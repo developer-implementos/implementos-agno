@@ -59,12 +59,12 @@ def search_web(busqueda: str):
         return f"Error al procesar la solicitud: {str(e)}"
 
 def create_agent() -> Agent:
-    # model = OpenAIChat(
-    #     id="gpt-4.1",
-    #     api_key=Config.OPENAI_API_KEY,
-    #     temperature=0.4
-    # )
-    model = Claude(
+    model = OpenAIChat(
+        id="gpt-4.1",
+        api_key=Config.OPENAI_API_KEY,
+        temperature=0.4
+    )
+    model_claude = Claude(
         id="claude-3-7-sonnet-latest",
         temperature=0.1,
         api_key=Config.ANTHROPIC_API_KEY
@@ -353,7 +353,7 @@ Antes de entregar la respuesta, verifica explícitamente
     knowledge_base.load(recreate=False)
 
     Agente_Ventas = Agent(
-        name="Agente de Ventas Analisis",
+        name="Agente de Ventas",
         agent_id="ventas_01",
         model=model,
         knowledge=knowledge_base,
@@ -370,16 +370,6 @@ Antes de entregar la respuesta, verifica explícitamente
         markdown=True,
         add_context=False,
         storage=MongoStorage,
-        # memory=AgentMemory(
-        #     db=MongoMemoryDb(collection_name="ventas_memories", db_url=Config.MONGO_IA),
-        #     create_session_summary=True,
-        #     update_session_summary_after_run=True,
-        #     create_user_memories=True,
-        #     update_user_memories_after_run=True,
-        #     retrieval=MemoryRetrieval.last_n,
-        #     num_memories=2,
-        #     update_system_message_on_change=True
-        # ),
         debug_mode=False,
         show_tool_calls=False,
         stream_intermediate_steps=False,
@@ -388,6 +378,32 @@ Antes de entregar la respuesta, verifica explícitamente
         perfiles=["1", "3", "5", "9"],
     )
 
-    return Agente_Ventas
+    Agente_Ventas_DeepSearch = Agent(
+        name="Agente de Ventas",
+        agent_id="ventas_01_deepsearch",
+        model=model_claude,
+        knowledge=knowledge_base,
+        search_knowledge=True,
+        description="Eres Un agente especializado en el area de ventas de Implementos Chile. Solo puedes responder consultas del Area de Ventas y Comercial.",
+        instructions=instructions,
+        tools=[
+            DataVentasTool(),
+            # search_web
+        ],
+        add_datetime_to_instructions=True,
+        add_history_to_messages=True,
+        num_history_responses=2,
+        markdown=True,
+        add_context=False,
+        storage=MongoStorage,
+        debug_mode=False,
+        show_tool_calls=False,
+        stream_intermediate_steps=False,
+        add_state_in_messages=True,
+        enable_session_summaries=True,
+        perfiles=[],
+    )
 
-Agente_Ventas = create_agent()
+    return Agente_Ventas, Agente_Ventas_DeepSearch
+
+Agente_Ventas, Agente_Ventas_DeepSearch = create_agent()
