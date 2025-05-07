@@ -1,6 +1,8 @@
 import sys
 import os
 
+from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch
+
 # Añade la carpeta 'libs' al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "libs", "agno")))
 # Añade la carpeta 'src' al path
@@ -37,6 +39,7 @@ app = Playground(
     agents=[
         Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2, Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
+        Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch,
         Agente_VT,
         Agente_Articulos,
         Agente_Clientes,

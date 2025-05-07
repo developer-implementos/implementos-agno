@@ -27,14 +27,29 @@ class ClientesVtTool(Toolkit):
         self.register(self.ultima_compra_cliente)
         self.register(self.flota_cliente)
         self.register(self.pedidos_pendientes_por_estado)
+        # CRM
+        self.register(self.holding_cliente)
+        self.register(self.resumen_bi_cliente)
+        self.register(self.resumen_bi_detalle_cliente)
+        self.register(self.resumen_flota_cliente)
+        self.register(self.ventas_valoradas)
+        self.register(self.ventas_por_tipo_documento)
+        self.register(self.ventas_por_canal)
+        self.register(self.ventas_por_uen)
+        self.register(self.obtener_saldo_cliente)
+        self.register(self.obtener_facturas_deuda)
+        self.register(self.obtener_bloqueo_cliente)
+        self.register(self.obtener_cheques_cliente)
+        self.register(self.obtener_notas_credito_con_saldo_a_favor)
+        self.register(self.obtener_notas_credito)
 
     def _obtener_ruts_cartera_objetivo(self, codigo_empleado: int) -> List[str]:
         """
         Obtiene los RUTs de la cartera objetivo de un vendedor.
-        
+
         Args:
             codigo_empleado (int): Código del empleado
-            
+
         Returns:
             List[str]: Lista de RUTs de la cartera objetivo
         """
@@ -42,7 +57,7 @@ class ClientesVtTool(Toolkit):
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             cartera_objetivo = db.carteraObjetivo
-            
+
             data = cartera_objetivo.aggregate([
                 {
                     "$match": {
@@ -57,23 +72,23 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
             client.close()
-            
+
             ruts = [item["rut"] for item in result]
             return ruts
         except Exception as e:
             logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
             return []
-        
+
     def obtener_clientes_cartera_objetivo(self, codigo_empleado: int) -> str:
         """
         Obtiene los clientes de la cartera objetivo de un vendedor.
-        
+
         Args:
             codigo_empleado (int): Código del empleado
-            
+
         Returns:
             str: Información de los clientes de la cartera objetivo en formato JSON
         """
@@ -81,7 +96,7 @@ class ClientesVtTool(Toolkit):
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             cartera_objetivo = db.carteraObjetivo
-            
+
             data = cartera_objetivo.aggregate([
                 {
                     "$match": {
@@ -97,7 +112,7 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
             client.close()
 
@@ -105,7 +120,7 @@ class ClientesVtTool(Toolkit):
                 "total_clientes": len(result),
                 "clientes": result
             }
-            
+
             return json.dumps(final_result, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             logger.error(f"Error al obtener RUTs de cartera objetivo: {e}")
@@ -137,16 +152,16 @@ class ClientesVtTool(Toolkit):
             return rows
         except Exception as err:
             return f"error running query: {err}"
-        
+
     def clientes_bloqueados(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para buscar clientes bloqueados por sus RUTs
-        
+
         Args:
             codigo_empleado (int): Código del empleado para obtener su cartera objetivo
-            ruts (Optional[List[str]]): Lista de RUTs de clientes a buscar. Si no se proporciona, 
+            ruts (Optional[List[str]]): Lista de RUTs de clientes a buscar. Si no se proporciona,
                                          se usan todos los RUTs de la cartera objetivo.
-            
+
         Returns:
             str: Información de los clientes bloqueados en formato JSON
         """
@@ -158,16 +173,16 @@ class ClientesVtTool(Toolkit):
                         "ok": False,
                         "mensaje": "No se encontraron RUTs en la cartera objetivo"
                     }, ensure_ascii=False, indent=2)
-            
+
             log_debug(f"Consultando clientes bloqueados con RUTs: {ruts}")
-            
+
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes = db.clientes
-            
+
             data = clientes.aggregate([
                 {
                     "$match": {
@@ -193,14 +208,14 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             mapped_result = []
             for cliente in result:
                 documento_cobros = cliente.get("documento_cobros", [])
                 deuda_total = sum(doc.get("saldo", 0) for doc in documento_cobros)
-                
+
                 facturas = []
                 for doc in documento_cobros:
                     estado = "POR VENCER" if doc.get("estado") == "ABIERTA" else doc.get("estado")
@@ -211,9 +226,9 @@ class ClientesVtTool(Toolkit):
                         "fecha_vencimiento": doc.get("fechaVencimiento")
                     }
                     facturas.append(factura)
-                
+
                 facturas.sort(key=lambda x: x["fecha_vencimiento"] if x["fecha_vencimiento"] else datetime.max)
-                
+
                 mapped_cliente = {
                     "rut": cliente.get("rut"),
                     "nombre": cliente.get("nombre"),
@@ -223,36 +238,36 @@ class ClientesVtTool(Toolkit):
                     "facturas": facturas
                 }
                 mapped_result.append(mapped_cliente)
-            
+
             mapped_result.sort(key=lambda x: x["nombre"])
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(mapped_result)} clientes bloqueados")
             return json.dumps(mapped_result, ensure_ascii=False, indent=2, default=str)
-            
+
         except Exception as e:
             error_message = f"Error al buscar clientes bloqueados: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def contactos_cliente(self, rut: str) -> str:
         """
         Función para obtener los contactos de un cliente por su RUT
-        
+
         Args:
             rut (str): RUT del cliente a consultar
-            
+
         Returns:
             str: Información de los contactos del cliente en formato JSON
         """
         try:
             rut_clean = rut.replace(".", "")
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes_ia = db.clientes
-            
+
             data = clientes_ia.aggregate([
                 {
                     "$match": {
@@ -274,36 +289,36 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(result)} contactos para el cliente con RUT {rut}")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al buscar contactos del cliente con RUT {rut}: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def direcciones_cliente(self, rut: str) -> str:
         """
         Función para obtener las direcciones de un cliente por su RUT
-        
+
         Args:
             rut (str): RUT del cliente a consultar
-            
+
         Returns:
             str: Información de las direcciones del cliente en formato JSON
         """
         try:
             rut_clean = rut.replace(".", "")
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes_ia = db.clientes
-            
+
             data = clientes_ia.aggregate([
                 {
                     "$match": {
@@ -323,32 +338,32 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             for item in result:
                 if "direccion" in item and item["direccion"]:
                     item["direccion"] = item["direccion"].replace("\n", " ")
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(result)} direcciones para el cliente con RUT {rut}")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al buscar direcciones del cliente con RUT {rut}: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def facturas_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las facturas pendientes de clientes
-        
+
         Args:
             codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
-            
+
         Returns:
             str: Información de las facturas pendientes en formato JSON
         """
@@ -360,14 +375,14 @@ class ClientesVtTool(Toolkit):
                         "ok": False,
                         "mensaje": "No se encontraron RUTs en la cartera objetivo"
                     }, ensure_ascii=False, indent=2)
-            
+
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes = db.clientes
-            
+
             data = clientes.aggregate([
                 {
                     "$match": {
@@ -390,14 +405,14 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             mapped_result = []
             for cliente in result:
                 documento_cobros = cliente.get("documento_cobros", [])
                 deuda_total = sum(doc.get("saldo", 0) for doc in documento_cobros)
-                
+
                 facturas = []
                 for doc in documento_cobros:
                     estado = "POR VENCER" if doc.get("estado") == "ABIERTA" else doc.get("estado")
@@ -408,9 +423,9 @@ class ClientesVtTool(Toolkit):
                         "fecha_vencimiento": doc.get("fechaVencimiento")
                     }
                     facturas.append(factura)
-                
+
                 facturas.sort(key=lambda x: x["fecha_vencimiento"] if x["fecha_vencimiento"] else datetime.max)
-                
+
                 mapped_cliente = {
                     "rut": cliente.get("rut"),
                     "nombre": cliente.get("nombre"),
@@ -420,26 +435,26 @@ class ClientesVtTool(Toolkit):
                     "facturas": facturas
                 }
                 mapped_result.append(mapped_cliente)
-            
+
             mapped_result.sort(key=lambda x: x["nombre"])
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(mapped_result)} clientes con facturas pendientes")
             return json.dumps(mapped_result, ensure_ascii=False, indent=2, default=str)
-            
+
         except Exception as e:
             error_message = f"Error al buscar facturas pendientes: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def listado_clientes_co(self, cod_empleado: int) -> str:
         """
         Función para obtener el listado de clientes de la cartera objetivo
-        
+
         Args:
             cod_empleado (int): Código del empleado
-            
+
         Returns:
             str: Listado de clientes de la cartera objetivo en formato JSON
         """
@@ -447,7 +462,7 @@ class ClientesVtTool(Toolkit):
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             cartera_objetivo = db.carteraObjetivo
-            
+
             data = cartera_objetivo.aggregate([
                 {
                     "$match": {
@@ -463,51 +478,51 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             result.sort(key=lambda x: x["nombre"])
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(result)} clientes en la cartera objetivo del empleado {cod_empleado}")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al buscar clientes de la cartera objetivo: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def pedidos_pendientes_cliente(self, rut: str, rut_vendedor: str) -> str:
         """
         Función para obtener los pedidos pendientes de un cliente
-        
+
         Args:
             rut (str): RUT del cliente (0 para todos los clientes)
             rut_vendedor (str): RUT del vendedor
-            
+
         Returns:
             str: Información de los pedidos pendientes en formato JSON
         """
         try:
             rut_clean = rut.replace(".", "") if rut else "0"
             rut_vendedor_clean = rut_vendedor.replace(".", "")
-            
+
             desde = datetime.now().replace(day=1, month=datetime.now().month-2 if datetime.now().month > 2 else 10, year=datetime.now().year if datetime.now().month > 2 else datetime.now().year-1).strftime("%Y%m%d")
             hasta = datetime.now().strftime("%Y%m%d")
-            
+
             url = f"https://replicacion.implementos.cl/ApiVendedor/api/vendedor/consultar-pedidos?rutVendedor={rut_vendedor_clean}&rutsClientes={rut_clean}&desde={desde}&hasta={hasta}&tipo=0"
-            
+
             headers = {
                 "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
             }
-            
+
             response = requests.get(url, headers=headers)
-            
+
             if response.status_code == 200:
                 result = response.json()
                 data = result.get("data", [])
-                
+
                 mapped_data = []
                 for pedido in data:
                     mapped_pedido = {
@@ -520,28 +535,28 @@ class ClientesVtTool(Toolkit):
                         "total_neto": pedido.get("totalNeto")
                     }
                     mapped_data.append(mapped_pedido)
-                
+
                 log_debug(f"Se encontraron {len(mapped_data)} pedidos pendientes para el cliente con RUT {rut}")
                 return json.dumps(mapped_data, ensure_ascii=False, indent=2)
             else:
                 error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
                 logger.warning(error_message)
                 return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al consultar pedidos pendientes para cliente con RUT {rut}: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def resumen_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener el resumen de clientes
-        
+
         Args:
             codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
-            
+
         Returns:
             str: Resumen de los clientes en formato JSON
         """
@@ -553,14 +568,14 @@ class ClientesVtTool(Toolkit):
                         "ok": False,
                         "mensaje": "No se encontraron RUTs en la cartera objetivo"
                     }, ensure_ascii=False, indent=2)
-            
+
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
-            
+
             client = MongoClient(Config.MONGO_IA)
             db = client.Implenet
             clientes_ia = db.clientes
-            
+
             data = clientes_ia.aggregate([
                 {
                     "$match": {
@@ -583,28 +598,28 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             client.close()
-            
+
             log_debug(f"Se obtuvo el resumen para {len(result)} clientes")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al obtener resumen de clientes: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def segmentos_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener los segmentos de clientes
-        
+
         Args:
             codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
-            
+
         Returns:
             str: Información de los segmentos de clientes en formato JSON
         """
@@ -616,7 +631,7 @@ class ClientesVtTool(Toolkit):
                         "ok": False,
                         "mensaje": "No se encontraron RUTs en la cartera objetivo"
                     }, ensure_ascii=False, indent=2)
-            
+
             segmentos_diccionario = {
                 "TODOS": "TODOS",
                 "TLC": "TELECOMUNICACIONES",
@@ -641,14 +656,14 @@ class ClientesVtTool(Toolkit):
                 "TCA": "TRANSPORTE DE CARGA",
                 "ML": "MERCADO LIBRE (E)"
             }
-            
+
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes = db.clientes
-            
+
             data = clientes.aggregate([
                 {
                     "$match": {
@@ -668,32 +683,32 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             for cliente in result:
                 segmento_codigo = cliente.get("segmento", "TCA")
                 cliente["nombre_segmento"] = segmentos_diccionario.get(segmento_codigo, segmentos_diccionario["TCA"])
-            
+
             client.close()
-            
+
             log_debug(f"Se obtuvieron segmentos para {len(result)} clientes")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al obtener segmentos de clientes: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def uen_fugadas_cliente(self, codigo_empleado: int, ruts: Optional[List[str]] = None) -> str:
         """
         Función para obtener las UEN fugadas de clientes
-        
+
         Args:
             codigo_empleado (int): Código del empleado para obtener su cartera objetivo
             ruts (Optional[List[str]]): Lista de RUTs de clientes a consultar. Si no se proporciona,
                                         se usan todos los RUTs de la cartera objetivo.
-            
+
         Returns:
             str: Información de las UEN fugadas en formato JSON
         """
@@ -705,14 +720,14 @@ class ClientesVtTool(Toolkit):
                         "ok": False,
                         "mensaje": "No se encontraron RUTs en la cartera objetivo"
                     }, ensure_ascii=False, indent=2)
-            
+
             # Limpiar los RUTs (quitar puntos)
             ruts_clean = [rut.replace(".", "") for rut in ruts]
-            
+
             client = MongoClient(Config.MONGO_NUBE)
             db = client.Implenet
             clientes_ia = db.clientes
-            
+
             data = clientes_ia.aggregate([
                 {
                     "$match": {
@@ -741,88 +756,88 @@ class ClientesVtTool(Toolkit):
                     }
                 }
             ])
-            
+
             result = list(data)
-            
+
             client.close()
-            
+
             log_debug(f"Se encontraron {len(result)} UEN fugadas para los clientes consultados")
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al obtener UEN fugadas de clientes: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def ultima_compra_cliente(self, rut: str) -> str:
         """
         Función para obtener la última compra de cliente
-        
+
         Args:
             rut (str): RUT de cliente a consultar
-            
+
         Returns:
             str: Información de las últimas compras en formato JSON
         """
         try:
             query = f"""
-            SELECT 
-              rutCliente as rut, 
-              nombreCliente as nombre, 
-              documento as folio, 
-              ov as ov, 
-              toString(toDate(fecha)) as fecha, 
-              sku as sku, 
-              uen as uen, 
-              categoria as categoria, 
+            SELECT
+              rutCliente as rut,
+              nombreCliente as nombre,
+              documento as folio,
+              ov as ov,
+              toString(toDate(fecha)) as fecha,
+              sku as sku,
+              uen as uen,
+              categoria as categoria,
               linea as linea,
               totalNetoItem as total
             FROM implementos.ventasrealtime
             WHERE (rutCliente, documento) IN (
                 SELECT rutCliente, documento
                 FROM (
-                    SELECT 
+                    SELECT
                         rutCliente,
                         documento,
                         ROW_NUMBER() OVER (PARTITION BY rutCliente ORDER BY MAX(fecha) DESC, documento DESC) AS rn
                     FROM implementos.ventasrealtime
-                    WHERE 
+                    WHERE
                         rutCliente = '{rut}' AND
                         tipoTransaccion IN ('FEL', 'BEL')
                     GROUP BY rutCliente, documento
-                ) 
+                )
                 WHERE rn = 1
             )
             ORDER BY rutCliente, sku
             """
-            
+
             log_debug(f"Consulta de últimas compras para {rut}")
             result = self.execute_query(query)
 
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al obtener últimas compras de cliente: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def flota_cliente(self, rut: str, marcas: List[str] = None, anio_min: int = None, anio_max: int = None) -> str:
         """
         Función para obtener la flota de vehículos de un cliente
-        
+
         Args:
             rut (str): RUT de cliente a consultar
             marcas (List[str], optional): Lista de marcas de vehículos a filtrar
             anio_min (int, optional): Año mínimo de fabricación
             anio_max (int, optional): Año máximo de fabricación
-            
+
         Returns:
             str: Información de la flota de vehículos en formato JSON
         """
         try:
-            
+
             query = f"""
-            SELECT 
+            SELECT
               rut as rut,
               nombre as nombre,
               placaPatente as patente,
@@ -831,41 +846,41 @@ class ClientesVtTool(Toolkit):
               anioFabricacion as anio_fabricacion,
               vin as vin,
               tipoVehiculo as tipo_vehiculo
-            FROM 
+            FROM
               implementos.flota_cliente
             WHERE rut = '{rut}'
             """
-            
+
             if marcas and len(marcas) > 0:
                 marcas_quoted = ", ".join([f"'{marca}'" for marca in marcas])
                 query += f" AND marca IN ({marcas_quoted})"
-                
+
             if anio_min and anio_min > 0:
                 query += f" AND anioFabricacion >= {anio_min}"
-                
+
             if anio_max and anio_max > 0:
                 query += f" AND anioFabricacion <= {anio_max}"
-            
+
             log_debug(f"Consulta de flota para {rut} clientes")
 
             result = self.execute_query(query)
 
             return json.dumps(result, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al obtener flota de cliente: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-    
+
     def pedidos_pendientes_por_estado(self, rut: str, rut_vendedor: str, estados_pedido: List[str] = None) -> str:
         """
         Función para obtener los pedidos pendientes de un cliente filtrados por estado
-        
+
         Args:
             rut (str): RUT del cliente (0 para todos los clientes)
             rut_vendedor (str): RUT del vendedor
             estados_pedido (List[str], optional): Lista de estados de pedido para filtrar
-            
+
         Returns:
             str: Información de los pedidos pendientes en formato JSON
         """
@@ -877,10 +892,10 @@ class ClientesVtTool(Toolkit):
                 "POR_VENCER": "POR VENCER",
                 "POR_CONVERTIR": "POR CONVERTIR"
             }
-            
+
             rut_clean = rut.replace(".", "") if rut else "0"
             rut_vendedor_clean = rut_vendedor.replace(".", "")
-            
+
             # Calcular fechas
             fecha_hasta = datetime.now()
             if fecha_hasta.month > 2:
@@ -888,29 +903,29 @@ class ClientesVtTool(Toolkit):
             else:
                 mes = 10 + fecha_hasta.month
                 fecha_desde = fecha_hasta.replace(day=1, month=mes, year=fecha_hasta.year-1)
-                
+
             desde = fecha_desde.strftime("%Y%m%d")
             hasta = fecha_hasta.strftime("%Y%m%d")
-            
+
             url = f"https://replicacion.implementos.cl/ApiVendedor/api/vendedor/consultar-pedidos?rutVendedor={rut_vendedor_clean}&rutsClientes={rut_clean}&desde={desde}&hasta={hasta}&tipo=0"
-            
+
             headers = {
                 "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
             }
-            
+
             response = requests.get(url, headers=headers)
-            
+
             if response.status_code == 200:
                 result = response.json()
                 pedidos_pendientes = result.get("data", [])
-                
+
                 # Filtrar por estados si se especifican
                 if estados_pedido and len(estados_pedido) > 0:
                     # Normalizar estados de pedido
                     estados_normalizados = [estado.replace("-", " ").upper() for estado in estados_pedido]
-                    pedidos_pendientes = [pedido for pedido in pedidos_pendientes 
+                    pedidos_pendientes = [pedido for pedido in pedidos_pendientes
                                         if pedido.get("estado") in estados_normalizados]
-                
+
                 # Contar por estado
                 contador_estados = {
                     "por_facturar": 0,
@@ -918,7 +933,7 @@ class ClientesVtTool(Toolkit):
                     "por_vencer": 0,
                     "por_convertir": 0
                 }
-                
+
                 for pedido in pedidos_pendientes:
                     estado = pedido.get("estado")
                     if estado == ESTADOS_PEDIDO["POR_FACTURAR"]:
@@ -929,7 +944,7 @@ class ClientesVtTool(Toolkit):
                         contador_estados["por_vencer"] += 1
                     elif estado == ESTADOS_PEDIDO["POR_CONVERTIR"]:
                         contador_estados["por_convertir"] += 1
-                
+
                 # Mapear los resultados
                 mapped_data = []
                 for pedido in pedidos_pendientes:
@@ -943,7 +958,7 @@ class ClientesVtTool(Toolkit):
                         "total_neto": pedido.get("totalNeto")
                     }
                     mapped_data.append(mapped_pedido)
-                
+
                 # Añadir resumen
                 result_data = {
                     "pedidos": mapped_data,
@@ -955,15 +970,720 @@ class ClientesVtTool(Toolkit):
                         "total": len(mapped_data)
                     }
                 }
-                
+
                 log_debug(f"Se encontraron {len(mapped_data)} pedidos pendientes para el cliente con RUT {rut}")
                 return json.dumps(result_data, ensure_ascii=False, indent=2)
             else:
                 error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
                 logger.warning(error_message)
                 return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-            
+
         except Exception as e:
             error_message = f"Error al consultar pedidos pendientes por estado para cliente con RUT {rut}: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def holding_cliente(self, rut: str) -> str:
+        """
+        Obtiene la información del holding al que pertenece un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información del holding en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/getHoldingCliente?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                result_data = {
+                    "mensaje": result.get("msg", ""),
+                    "estado": result.get("status", 0),
+                    "error": result.get("error", False),
+                    "cantidad_holdings": len(data),
+                    "holdings": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener holding de cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def resumen_bi_cliente(self, rut_cliente: str, page: int = 1, limit: int = 30, sort: str = "creMes|1") -> str:
+        """
+        Obtiene el resumen BI del cliente.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            page (int, optional): Número de página. Default: 1
+            limit (int, optional): Límite de resultados por página. Default: 30
+            sort (str, optional): Campo y orden de ordenación (formato: campo|orden). Default: "creMes|1"
+
+        Returns:
+            str: Resumen BI del cliente en formato JSON
+        """
+        try:
+            url = "https://b2b-api.implementos.cl/api/cliente/resumenBICRM"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "rutCliente": rut_cliente,
+                "page": page,
+                "limit": limit,
+                "sort": sort
+            }
+
+            response = requests.post(url, headers=headers, json=payload)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                # Transformar los valores numéricos con formato $numberDecimal
+                data = result.get("data", [])
+                for item in data:
+                    if "monetario" in item and isinstance(item["monetario"], dict) and "$numberDecimal" in item[
+                        "monetario"]:
+                        item["monetario"] = float(item["monetario"]["$numberDecimal"])
+                    if "monetarioU4M" in item and isinstance(item["monetarioU4M"], dict) and "$numberDecimal" in item[
+                        "monetarioU4M"]:
+                        item["monetarioU4M"] = float(item["monetarioU4M"]["$numberDecimal"])
+                    if "creMes" in item and isinstance(item["creMes"], dict) and "$numberDecimal" in item["creMes"]:
+                        item["creMes"] = float(item["creMes"]["$numberDecimal"])
+
+                    # Transformar los valores en los detalles
+                    if "detalle" in item:
+                        for detalle in item["detalle"]:
+                            if "monetarioItemId" in detalle and isinstance(detalle["monetarioItemId"],
+                                                                           dict) and "$numberDecimal" in detalle[
+                                "monetarioItemId"]:
+                                detalle["monetarioItemId"] = float(detalle["monetarioItemId"]["$numberDecimal"])
+                            if "monetarioItemIdU4M" in detalle and isinstance(detalle["monetarioItemIdU4M"],
+                                                                              dict) and "$numberDecimal" in detalle[
+                                "monetarioItemIdU4M"]:
+                                detalle["monetarioItemIdU4M"] = float(detalle["monetarioItemIdU4M"]["$numberDecimal"])
+                            if "creMes" in detalle and isinstance(detalle["creMes"], dict) and "$numberDecimal" in \
+                                detalle["creMes"]:
+                                detalle["creMes"] = float(detalle["creMes"]["$numberDecimal"])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "total": result.get("total", 0),
+                    "cantidad_resultados": len(data),
+                    "pagina": result.get("page", 1),
+                    "primera_pagina": result.get("firstPage", 1),
+                    "ultima_pagina": result.get("lastPage", 1),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2, default=str)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener resumen BI para cliente con RUT {rut_cliente}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def resumen_bi_detalle_cliente(self, rut_cliente: str, uen: str, page: int = 1, limit: int = 30,
+                                   sort: str = "creMes|1") -> str:
+        """
+        Obtiene el detalle del resumen BI del cliente por UEN.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            uen (str): UEN a consultar
+            page (int, optional): Número de página. Default: 1
+            limit (int, optional): Límite de resultados por página. Default: 30
+            sort (str, optional): Campo y orden de ordenación (formato: campo|orden). Default: "creMes|1"
+
+        Returns:
+            str: Detalle del resumen BI del cliente en formato JSON
+        """
+        try:
+            url = "https://b2b-api.implementos.cl/api/cliente/resumenBIDetalleCRM"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "rutCliente": rut_cliente,
+                "uen": uen,
+                "page": page,
+                "limit": limit,
+                "sort": sort
+            }
+
+            response = requests.post(url, headers=headers, json=payload)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "total": result.get("total", 0),
+                    "cantidad_resultados": len(data),
+                    "pagina": result.get("page", 1),
+                    "primera_pagina": result.get("firstPage", 1),
+                    "ultima_pagina": result.get("lastPage", 1),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2, default=str)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener detalle de resumen BI para cliente con RUT {rut_cliente} y UEN {uen}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def resumen_flota_cliente(self, rut: str) -> str:
+        """
+        Obtiene el resumen de la flota de vehículos de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Resumen de la flota del cliente en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/resumenFlota?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", {})
+
+                # Calcular el total de vehículos
+                total_vehiculos = sum(data.values()) if data else 0
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "total_vehiculos": total_vehiculos,
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener resumen de flota para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def ventas_valoradas(self, rut_cliente: str, anio: int, uen: str = "") -> str:
+        """
+        Obtiene las ventas valoradas de un cliente para visualización en gráfico.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            anio (int): Año a consultar
+            uen (str, optional): UEN específica (vacío para todas). Default: ""
+
+        Returns:
+            str: Información de ventas valoradas en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/graficos/ventaValorada?rutCliente={rut_cliente}&anio={anio}&uen={uen}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                # Transformar los valores numéricos
+                for item in data:
+                    if "total" in item and isinstance(item["total"], dict) and "$numberDecimal" in item["total"]:
+                        item["total"] = float(item["total"]["$numberDecimal"])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_registros": len(data),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener ventas valoradas para cliente con RUT {rut_cliente}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def ventas_por_tipo_documento(self, rut_cliente: str, anio: int, mes: int) -> str:
+        """
+        Obtiene las ventas de un cliente por tipo de documento.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            anio (int): Año a consultar
+            mes (int): Mes a consultar
+
+        Returns:
+            str: Información de ventas por tipo de documento en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/tablas/ventasPorTipoDocumento?rutCliente={rut_cliente}&anio={anio}&mes={mes}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                # Transformar los valores numéricos
+                for item in data:
+                    if "total" in item and isinstance(item["total"], dict) and "$numberDecimal" in item["total"]:
+                        item["total"] = float(item["total"]["$numberDecimal"])
+                    if "totalMargen" in item and isinstance(item["totalMargen"], dict) and "$numberDecimal" in item[
+                        "totalMargen"]:
+                        item["totalMargen"] = float(item["totalMargen"]["$numberDecimal"])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_registros": len(data),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener ventas por tipo de documento para cliente con RUT {rut_cliente}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def ventas_por_canal(self, rut_cliente: str, anio: int, mes: int) -> str:
+        """
+        Obtiene las ventas de un cliente por canal.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            anio (int): Año a consultar
+            mes (int): Mes a consultar
+
+        Returns:
+            str: Información de ventas por canal en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/tablas/ventasPorCanal?rutCliente={rut_cliente}&anio={anio}&mes={mes}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                # Transformar los valores numéricos
+                for item in data:
+                    if "total" in item and isinstance(item["total"], dict) and "$numberDecimal" in item["total"]:
+                        item["total"] = float(item["total"]["$numberDecimal"])
+                    if "totalMargen" in item and isinstance(item["totalMargen"], dict) and "$numberDecimal" in item[
+                        "totalMargen"]:
+                        item["totalMargen"] = float(item["totalMargen"]["$numberDecimal"])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_registros": len(data),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener ventas por canal para cliente con RUT {rut_cliente}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def ventas_por_uen(self, rut_cliente: str, anio: int, mes: int) -> str:
+        """
+        Obtiene las ventas de un cliente por UEN.
+
+        Args:
+            rut_cliente (str): RUT del cliente
+            anio (int): Año a consultar
+            mes (int): Mes a consultar
+
+        Returns:
+            str: Información de ventas por UEN en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/tablas/ventasPorUen?rutCliente={rut_cliente}&anio={anio}&mes={mes}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                # Transformar los valores numéricos
+                for item in data:
+                    if "total" in item and isinstance(item["total"], dict) and "$numberDecimal" in item["total"]:
+                        item["total"] = float(item["total"]["$numberDecimal"])
+                    if "totalMargen" in item and isinstance(item["totalMargen"], dict) and "$numberDecimal" in item[
+                        "totalMargen"]:
+                        item["totalMargen"] = float(item["totalMargen"]["$numberDecimal"])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_registros": len(data),
+                    "data": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener ventas por UEN para cliente con RUT {rut_cliente}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_saldo_cliente(self, rut: str) -> str:
+        """
+        Obtiene el saldo de crédito de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información del saldo del cliente en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/saldo?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                credito = float(result.get("credito", 0))
+                utilizado = float(result.get("utilizado", 0))
+                saldo = float(result.get("saldo", 0))
+
+                # Calcular porcentajes
+                porcentaje_utilizado = round((utilizado / credito) * 100, 2) if credito > 0 else 0
+                porcentaje_saldo = round((saldo / credito) * 100, 2) if credito > 0 else 0
+
+                result_data = {
+                    "credito": credito,
+                    "utilizado": utilizado,
+                    "saldo": saldo,
+                    "porcentaje_utilizado": porcentaje_utilizado,
+                    "porcentaje_saldo": porcentaje_saldo
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener saldo para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_facturas_deuda(self, rut: str) -> str:
+        """
+        Obtiene las facturas con deuda de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información de las facturas con deuda en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/facturas?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                deuda_vencida = float(result.get("deudaVencida", 0))
+                deuda_por_vencer = float(result.get("deudaPorVencer", 0))
+                detalle_vencido = result.get("detalleVencido", [])
+                detalle_por_vencer = result.get("detallePorVencer", [])
+
+                # Calcular montos totales y porcentajes
+                deuda_total = deuda_vencida + deuda_por_vencer
+                porcentaje_vencido = round((deuda_vencida / deuda_total) * 100, 2) if deuda_total > 0 else 0
+                porcentaje_por_vencer = round((deuda_por_vencer / deuda_total) * 100, 2) if deuda_total > 0 else 0
+
+                result_data = {
+                    "deuda_vencida": deuda_vencida,
+                    "deuda_por_vencer": deuda_por_vencer,
+                    "deuda_total": deuda_total,
+                    "porcentaje_vencido": porcentaje_vencido,
+                    "porcentaje_por_vencer": porcentaje_por_vencer,
+                    "cantidad_facturas_vencidas": len(detalle_vencido),
+                    "cantidad_facturas_por_vencer": len(detalle_por_vencer),
+                    "detalle_vencido": detalle_vencido,
+                    "detalle_por_vencer": detalle_por_vencer
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener facturas con deuda para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_bloqueo_cliente(self, rut: str) -> str:
+        """
+        Obtiene el estado de bloqueo de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información del estado de bloqueo en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/bloqueo?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", {})
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "estado": data.get("estado", ""),
+                    "motivo_bloqueo": data.get("nombreMotivoBloqueo", ""),
+                    "cobrador": data.get("cobrador", "")
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener estado de bloqueo para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_cheques_cliente(self, rut: str) -> str:
+        """
+        Obtiene los cheques a 30, 60 y 90 días de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información de los cheques en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/cheques?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_cheques": len(data),
+                    "cheques": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener cheques para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_notas_credito_con_saldo_a_favor(self, rut: str) -> str:
+        """
+        Obtiene las notas de crédito con saldo a favor de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Información del saldo de notas de crédito en formato JSON
+        """
+        try:
+            url = f"https://b2b-api.implementos.cl/api/cliente/notasCreditoConSaldo?rut={rut}"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
+            }
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                # Calcular saldo total
+                saldo_total = sum(float(nota.get("saldo", 0)) for nota in data) if data else 0
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "cantidad_notas": len(data),
+                    "saldo_total": saldo_total,
+                    "notas": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener saldo de notas de crédito para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+    def obtener_notas_credito(self, rut: str, page: int = 1, limit: int = 20, sort: str = "fecha|-1") -> str:
+        """
+        Obtiene las notas de crédito de un cliente.
+
+        Args:
+            rut (str): RUT del cliente
+            page (int, optional): Número de página. Default: 1
+            limit (int, optional): Límite de resultados por página. Default: 20
+            sort (str, optional): Campo y orden de ordenación (formato: campo|orden). Default: "fecha|-1"
+
+        Returns:
+            str: Información de las notas de crédito en formato JSON
+        """
+        try:
+            url = "https://b2b-api.implementos.cl/api/cliente/notasCreditoCRM"
+            headers = {
+                "Authorization": "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "rut": rut,
+                "page": page,
+                "limit": limit,
+                "sort": sort
+            }
+
+            response = requests.post(url, headers=headers, json=payload)
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", [])
+
+                result_data = {
+                    "error": result.get("error", False),
+                    "mensaje": result.get("msg", ""),
+                    "total": result.get("total", 0),
+                    "cantidad_notas": len(data),
+                    "pagina": result.get("page", 1),
+                    "primera_pagina": result.get("firstPage", 1),
+                    "ultima_pagina": result.get("lastPage", 1),
+                    "notas": data
+                }
+
+                return json.dumps(result_data, ensure_ascii=False, indent=2)
+            else:
+                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
+                logger.warning(error_message)
+                return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            error_message = f"Error al obtener notas de crédito para cliente con RUT {rut}: {e}"
+            logger.warning(error_message)
+            return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
+
+
+
