@@ -1,8 +1,6 @@
 import sys
 import os
 
-from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch
-
 # Añade la carpeta 'libs' al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "libs", "agno")))
 # Añade la carpeta 'src' al path
@@ -22,6 +20,7 @@ from agent.agent_documentos import Agente_Documentos
 from agent.agent_ecommerce import Agente_Ecommerce
 from agent.agent_maestro_mecanico import Agente_Maestro_Mecanico
 from agent.agent_vt import Agente_VT
+from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch
 from config.config import Config
 
 from api.auth.auth_api import auth_router
