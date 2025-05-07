@@ -468,7 +468,7 @@ Agente_Cartera_Vt = Agent(
 )
 
 Agente_Cartera_Vt_DeepSearch = Agent(
-    name="Especialista Carteras VT",
+    name="Especialista Carteras VT Analítico",
     agent_id="vendedores_terreno_01_deepsearch",
     model=Claude(id="claude-3-7-sonnet-20250219",temperature=0.2,api_key=Config.ANTHROPIC_API_KEY),
     description="Eres un agente especializado en el área de ventas de Implementos Chile. Enfocado en realizar análisis detallados de carteras de vendedores, proporcionando información útil y estratégica para jefaturas de Venta.",
@@ -481,7 +481,7 @@ Agente_Cartera_Vt_DeepSearch = Agent(
     stream=True,
     debug_mode=False,
     storage=MongoStorage,
-    perfiles=[]
+    perfiles=["1", "3", "5", "9"]
 )
 
 

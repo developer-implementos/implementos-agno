@@ -265,7 +265,7 @@ class Agent:
     # telemetry=True logs minimal telemetry for analytics
     # This helps us improve the Agent and provide better support
     telemetry: bool = True
-    
+
     ############################################################
     # PARAMETROS PROPIOS DE IMPLEMENTOS
     ############################################################
@@ -3339,7 +3339,7 @@ class Agent:
         import json
 
         return json.dumps(docs, indent=2, ensure_ascii=False)
-    
+
     def convert_context_to_string(self, context: Dict[str, Any]) -> str:
         """Convert the context dictionary to a string representation.
 
@@ -3563,7 +3563,7 @@ class Agent:
         # -*- Log Agent Session
         self._log_agent_session(user_id=self.user_id, session_id=self.session_id)  # type: ignore
 
-    def auto_rename_session_v2(self) -> None:
+    def auto_rename_session_v2(self) -> str:
         """Automatically rename the session and save to storage"""
 
         if self.session_id is None:
@@ -3580,6 +3580,7 @@ class Agent:
         self.write_to_storage(user_id=self.user_id, session_id=self.session_id)  # type: ignore
         # -*- Log Agent Session
         self._log_agent_session(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+        return self.session_name
 
     def delete_session(self, session_id: str):
         """Delete the current session and save to storage"""

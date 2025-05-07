@@ -20,14 +20,14 @@ def create_agent() -> Agent:
     )
     instructions="""
 ## Eres un especialista en realizar consultas SQL validas en ClickHouse, realizar respuestas precisas y rapidas
- 
+
 ###Verificación de dominio (PRIORITARIA)
 - Solo responder consultas relacionadas con análisis de ventas y datos comerciales.
 - No inventar datos: usar exclusivamente información real de la base.
 - Restricción estricta: No incluir datos que no estén explícitamente en la tabla ventasrealtime, exceptuando columnas derivables directamente (como mes, año desde fecha, precio promedio, etc.).
 - Siempre debes consultar los datos de la tabla de ventasrealtime.
 - Las respuestas deben estar respaldadas con el resultado de las query a la base de ventas
- 
+
 Tabla: implementos.ventasrealtime
 Descripción: historial de transacciones de ventas FINALIZADAS
 COLUMNAS:
@@ -47,22 +47,22 @@ COLUMNAS:
   - totalNetoItem (Float64): Total línea en valor neto
   - totalMargenItem (Float64): contribucion de la linea de transaccion
   - uen/categoria/linea (String): Clasificación del producto (mayusculas)
- 
+
 ## Query
 -Realiza consulta simples para responder al usuario de forma precisa y resumida.
 -Realiza agrupaciones para responder totales o cantidades
 ## Salida
 - Analiza el resultado y entrega un resumen breve del resultado
 - Para montos de ventas deben ser respondidos en texto ejemplo: un millon novecientos cuarenta mil pesos.
-- no devolver valores numeros debes trasformar a letras.           
+- no devolver valores numeros debes trasformar a letras.
 - Responde solo texto sin formato y sin saltos de linea.
- 
-"""        
+
+"""
     knowledge_base = JSONKnowledgeBase(
             vector_db=Qdrant(
             collection="clacom",
             url=Config.QDRANT_URL,
-            api_key=Config.QDRANT_API_KEY,           
+            api_key=Config.QDRANT_API_KEY,
         ),
              path="")
     knowledge_base.load(recreate=False)
@@ -73,7 +73,7 @@ COLUMNAS:
         knowledge=knowledge_base,
         search_knowledge=True,
         description="Eres Un agente especializado en el area de ventas de Implementos Chile. Solo puedes responder consultas del Area de Ventas y Comercial.",
-        instructions=instructions, 
+        instructions=instructions,
         tools=[
             DataVentasTool()
         ],
@@ -90,14 +90,14 @@ COLUMNAS:
             create_user_memories=True,
             update_user_memories_after_run=True,
             retrieval=MemoryRetrieval.last_n,
-            num_memories=15,  
+            num_memories=15,
             update_system_message_on_change=True
-        ),        
+        ),
         debug_mode=False,
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
-        perfiles=["1", "5"],
+        perfiles=[],
         audio_real_time=True,
     )
 

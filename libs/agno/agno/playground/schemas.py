@@ -81,6 +81,7 @@ class AgentRunRequest(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     files: Optional[List[UploadFile]] = None
+    is_deep_search_active: bool = False
 
 
 class AgentRenameRequest(BaseModel):

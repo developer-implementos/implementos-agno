@@ -12,6 +12,7 @@ from agno.media import Audio, Image, Video
 from agno.media import File as FileMedia
 from agno.memory.agent import AgentMemory
 from agno.memory.v2 import Memory
+from agno.models.anthropic import Claude
 from agno.playground.operator import (
     format_tools,
     get_agent_by_id,
@@ -44,6 +45,7 @@ from agno.storage.session.agent import AgentSession
 from agno.storage.session.team import TeamSession
 from agno.storage.session.workflow import WorkflowSession
 from agno.team.team import Team
+from agno.tools.reasoning import ReasoningTools
 from agno.utils.log import logger
 from agno.workflow.workflow import Workflow
 
@@ -219,24 +221,14 @@ def get_async_playground_router(
         session_id: Optional[str] = Form(None),
         user_id: Optional[str] = Form(None),
         files: Optional[List[UploadFile]] = File(None),
-        isDeepSearchActive: bool = Form(False),
+        is_deep_search_active: bool = Form(False),
     ):
         agent_id_original = agent_id
-        if isDeepSearchActive:
-            agent_id = agent_id + "_deepsearch"
+        agent = get_agent_by_id(agent_id_original, agents)
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
 
         logger.debug(f"AgentRunRequest: {message} {session_id} {user_id} {agent_id}")
-        agent = get_agent_by_id(agent_id, agents)
-
-        if agent is None:
-            if isDeepSearchActive:
-                agent_id = agent_id_original
-                agent = get_agent_by_id(agent_id, agents)
-                if agent is None:
-                    raise HTTPException(status_code=404, detail="Agent not found")
-            else:
-                raise HTTPException(status_code=404, detail="Agent not found")
-
 
         if session_id is not None and session_id != "":
             logger.debug(f"Continuing session: {session_id}")
@@ -470,8 +462,12 @@ def get_async_playground_router(
         for session in all_agent_sessions:
             if session.session_id == session_id:
                 agent.session_id = session_id
-                agent.auto_rename_session_v2()
-                return JSONResponse(content={"message": f"successfully renamed session {session.session_id}"})
+                new_session_name = agent.auto_rename_session_v2()
+                content = {
+                    "message": f"successfully renamed session {session.session_id}",
+                    "new_session_name": new_session_name
+                }
+                return JSONResponse(content=content)
 
         return JSONResponse(status_code=404, content="Session not found.")
 

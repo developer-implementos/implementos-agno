@@ -58,16 +58,25 @@ def search_web(busqueda: str):
     except Exception as e:
         return f"Error al procesar la solicitud: {str(e)}"
 
-def create_agent() -> Agent:
-    model = OpenAIChat(
+def create_agent() -> tuple[Agent, Agent, Agent]:
+    model_openai = OpenAIChat(
         id="gpt-4.1",
+        temperature=0.1,
         api_key=Config.OPENAI_API_KEY,
-        temperature=0.4
     )
     model_claude = Claude(
         id="claude-3-7-sonnet-latest",
         temperature=0.1,
-        api_key=Config.ANTHROPIC_API_KEY
+        api_key=Config.ANTHROPIC_API_KEY,
+    )
+    model_claude_2=Claude(
+        id="claude-3-7-sonnet-20250219",
+        max_tokens=64000,
+        temperature=1,
+        thinking={
+            "type": "enabled",
+            "budget_tokens": 6000
+        }
     )
 
     instructions="""
@@ -355,7 +364,7 @@ Antes de entregar la respuesta, verifica explícitamente
     Agente_Ventas = Agent(
         name="Agente de Ventas",
         agent_id="ventas_01",
-        model=model,
+        model=model_openai,
         knowledge=knowledge_base,
         search_knowledge=True,
         description="Eres Un agente especializado en el area de ventas de Implementos Chile. Solo puedes responder consultas del Area de Ventas y Comercial.",
@@ -374,12 +383,12 @@ Antes de entregar la respuesta, verifica explícitamente
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
-        enable_session_summaries=True,
+        enable_session_summaries=False,
         perfiles=["1", "3", "5", "9"],
     )
 
     Agente_Ventas_DeepSearch = Agent(
-        name="Agente de Ventas",
+        name="Agente de Ventas Analítico",
         agent_id="ventas_01_deepsearch",
         model=model_claude,
         knowledge=knowledge_base,
@@ -400,10 +409,36 @@ Antes de entregar la respuesta, verifica explícitamente
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=True,
-        enable_session_summaries=True,
-        perfiles=[],
+        enable_session_summaries=False,
+        perfiles=["1", "3", "5", "9"],
     )
 
-    return Agente_Ventas, Agente_Ventas_DeepSearch
+    Agente_Ventas_DeepSearch_2 = Agent(
+        name="Agente de Ventas Analítico 2.0",
+        agent_id="ventas_01_deepsearch_02",
+        model=model_claude_2,
+        knowledge=knowledge_base,
+        search_knowledge=True,
+        description="Eres Un agente especializado en el area de ventas de Implementos Chile. Solo puedes responder consultas del Area de Ventas y Comercial.",
+        instructions=instructions,
+        tools=[
+            DataVentasTool(),
+            # search_web
+        ],
+        add_datetime_to_instructions=True,
+        add_history_to_messages=True,
+        num_history_responses=2,
+        markdown=True,
+        add_context=False,
+        storage=MongoStorage,
+        debug_mode=False,
+        show_tool_calls=False,
+        stream_intermediate_steps=False,
+        add_state_in_messages=True,
+        enable_session_summaries=False,
+        perfiles=["1", "3", "5", "9"],
+    )
 
-Agente_Ventas, Agente_Ventas_DeepSearch = create_agent()
+    return Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2
+
+Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2 = create_agent()

@@ -151,9 +151,19 @@ class Model(ABC):
     def set_tools(self, tools: List[Dict]) -> None:
         self._tools = tools
 
+    def get_tools(self) -> List[Dict]:
+        if self._tools is None:
+            return []
+        return self._tools
+
     def set_functions(self, functions: Dict[str, Function]) -> None:
         if len(functions) > 0:
             self._functions = functions
+
+    def get_functions(self) -> Dict[str, Function]:
+        if self._functions is None:
+            return {}
+        return self._functions
 
     def reset_tools_and_functions(self) -> None:
         self._tools = None

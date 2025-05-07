@@ -11,11 +11,10 @@ from agno.playground import Playground, serve_playground_app
 from agno.playground.settings import PlaygroundSettings
 
 # Src
-from agent.agent_ventas import Agente_Ventas, Agente_Ventas_DeepSearch
+from agent.agent_ventas import Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2
 from agent.agent_ventas_voice import Agente_Ventas_Voice
 from agent.agent_articulos import Agente_Articulos
 from agent.agent_cartera_vt import Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch
-from agent.agent_clientes_vt import Agente_Clientes_Vt
 from agent.agent_clientes import Agente_Clientes
 from agent.agent_documentos import Agente_Documentos
 from agent.agent_ecommerce import Agente_Ecommerce
@@ -36,12 +35,10 @@ settings = PlaygroundSettings(
 
 app = Playground(
     agents=[
-        Agente_VT,
-        Agente_Ventas, Agente_Ventas_DeepSearch,
-        Agente_Ventas_Voice,
-        Agente_Articulos,
+        Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2, Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
-        Agente_Clientes_Vt,
+        Agente_VT,
+        Agente_Articulos,
         Agente_Clientes,
         Agente_Documentos,
         Agente_Ecommerce,
