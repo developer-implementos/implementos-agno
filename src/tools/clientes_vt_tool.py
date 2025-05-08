@@ -24,7 +24,7 @@ class ClientesVtTool(Toolkit):
         self.register(self.resumen_cliente)
         self.register(self.segmentos_cliente)
         self.register(self.uen_fugadas_cliente)
-        self.register(self.ultima_compra_cliente)
+        self.register(self.ultimas_compras_clientes)
         self.register(self.flota_cliente)
         self.register(self.pedidos_pendientes_por_estado)
         # CRM
@@ -769,17 +769,29 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
 
-    def ultima_compra_cliente(self, rut: str) -> str:
+    def ultimas_compras_clientes(self, ruts: list[str], where_sql: str = "") -> str:
         """
-        Función para obtener la última compra de cliente
+        Función para obtener la última compra de múltiples clientes
 
         Args:
-            rut (str): RUT de cliente a consultar
+            ruts (list[str]): Lista de RUTs de clientes a consultar
+            where_sql (Optional[str]): Condiciones adicionales para filtrar por sku, uen, categoria, linea, totalNetoItem
 
         Returns:
             str: Información de las últimas compras en formato JSON
         """
         try:
+            # Validar que la lista no esté vacía
+            if not ruts:
+                return json.dumps({"error": "La lista de RUTs no puede estar vacía"}, ensure_ascii=False, indent=2)
+
+            # Formatear los RUTs para la consulta SQL
+            ruts_formateados = [f"'{rut.replace(".", "")}'" for rut in ruts]
+            ruts_str = ', '.join(ruts_formateados)
+
+            # Añadir filtro adicional si se proporciona
+            filtro_adicional = f" AND {where_sql}" if where_sql else ""
+
             query = f"""
             SELECT
               rutCliente as rut,
@@ -802,8 +814,8 @@ class ClientesVtTool(Toolkit):
                         ROW_NUMBER() OVER (PARTITION BY rutCliente ORDER BY MAX(fecha) DESC, documento DESC) AS rn
                     FROM implementos.ventasrealtime
                     WHERE
-                        rutCliente = '{rut}' AND
-                        tipoTransaccion IN ('FEL', 'BEL')
+                        rutCliente IN ({ruts_str}) AND
+                        tipoTransaccion IN ('FEL', 'BEL'){filtro_adicional}
                     GROUP BY rutCliente, documento
                 )
                 WHERE rn = 1
@@ -811,13 +823,14 @@ class ClientesVtTool(Toolkit):
             ORDER BY rutCliente, sku
             """
 
-            log_debug(f"Consulta de últimas compras para {rut}")
+            log_debug(f"Consulta de últimas compras para {len(ruts)} clientes")
+            log_debug(f"Query: {query}")
             result = self.execute_query(query)
 
             return json.dumps(result, ensure_ascii=False, indent=2)
 
         except Exception as e:
-            error_message = f"Error al obtener últimas compras de cliente: {e}"
+            error_message = f"Error al obtener últimas compras de clientes: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
 

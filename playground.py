@@ -40,7 +40,7 @@ app = Playground(
         Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
         Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch,
-        #Agente_VT, Agente_VT_Cristian_Sepulveda,
+        Agente_VT, Agente_VT_Cristian_Sepulveda,
         Agente_Articulos,
         Agente_Clientes,
         Agente_Documentos,
