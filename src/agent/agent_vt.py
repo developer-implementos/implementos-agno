@@ -67,7 +67,7 @@ Clasifica como ANALÍTICA cuando:
 Si el usuario solicita el resumen(sin especificar) o resumen comercial, se debe entregar esta información:
 - Rut del cliente
 - Nombre del cliente
-- Crédito total y crédito usado
+- Crédito total y crédito usado, usar la herramienta **obtener_saldo_cliente**
 - Facturas pendientes de pago
 - Pedidos pendientes del cliente entregados por la herramienta **pedidos_pendientes_vendedor**
     + Notas de venta por sincronizar
