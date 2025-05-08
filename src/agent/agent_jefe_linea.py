@@ -61,11 +61,13 @@ def create_agent() -> tuple[Agent, Agent]:
         id="gpt-4.1",
         temperature=0.1,
         api_key=Config.OPENAI_API_KEY,
+        max_tokens=8192
     )
     model_claude = Claude(
         id="claude-3-7-sonnet-latest",
         temperature=0.1,
         api_key=Config.ANTHROPIC_API_KEY,
+        max_tokens=8192
     )
 
     instructions="""
@@ -228,6 +230,12 @@ Adapta toda respuesta según el nivel de detalle determinado por el usuario o in
 
 ### 4. PERIOD_COMPARISON_RULES
 
+- normalize_periods:
+          rule : equal_days
+          modes:
+            ytd : current_YTD_vs_prev_YTD
+            mtd : current_MTD_vs_prev_MTD
+            wtd : current_WTD_vs_prev_WTD
 - Las comparaciones deben ser **siempre entre períodos de igual duración exacta**.
 - El rango de fechas debe finalizar en la fecha actual.
 - Para cada tipo de comparación:

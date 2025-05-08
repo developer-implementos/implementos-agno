@@ -56,6 +56,9 @@ class Claude(Model):
     client: Optional[AnthropicClient] = None
     async_client: Optional[AsyncAnthropicClient] = None
 
+    # Parametros propios IMPLEMENTOS
+    _estado_actual: str = ""
+
     def _get_client_params(self) -> Dict[str, Any]:
         client_params: Dict[str, Any] = {}
 
@@ -440,8 +443,21 @@ class Claude(Model):
 
         if isinstance(response, ContentBlockDeltaEvent):
             # Handle text content
+            # if response.delta.type == "text_delta":
+            #     model_response.content = response.delta.text
+            if response.delta.type == "input_json_delta":
+                self._estado_actual = "+"  # Usar self para acceder al estado de la instancia
             if response.delta.type == "text_delta":
-                model_response.content = response.delta.text
+                if self._estado_actual == "+":
+                    if response.delta.text.strip().startswith("+ "):
+                        model_response.content = "\n" + response.delta.text
+                    else:
+                        model_response.content = "\n + " + response.delta.text
+
+                    self._estado_actual = ""  # Reiniciar el estado después de usarlo
+                else:
+                    model_response.content = response.delta.text
+                    self._estado_actual = ""
             elif response.delta.type == "citation_delta":
                 citation = response.delta.citation
                 model_response.citations = Citations(raw=citation)
