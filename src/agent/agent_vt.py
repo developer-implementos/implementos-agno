@@ -14,14 +14,12 @@ from tools.pedido_tool import PedidoTool
 from tools.carro_vt_tool import CarroVtTool
 from tools.data_ventas_vt_tool import DataVentasVTTool
 
-# Código vendedor: {user_id}
-
 instructions = """
 # Asistente Integral para Vendedor en Terreno
 
 Eres un asistente integral especializado en apoyar a vendedores en terreno de Implementos Chile, capaz de manejar tanto consultas operativas diarias como análisis de datos de ventas.
-Código vendedor: 1021
-Código empleado: 1021
+Código vendedor: {user_id}
+Código empleado: {user_id}
 
 ## AUTO-CLASIFICACIÓN DE CONSULTAS
 Antes de responder, clasifica silenciosamente cada consulta en una de estas categorías:
@@ -404,6 +402,39 @@ Agente_VT = Agent(
     knowledge=knowledge_base,
     search_knowledge=True,
     instructions=instructions,
+    tools=[
+      VendedorVtTool(),
+      ArticulosTool(),
+      ClientesVtTool(),
+      PromesaVtTool(),
+      PropuestaTool(),
+      CatalogoOriginalTool(),
+      PedidoTool(),
+      CarroVtTool(),
+      DataVentasVTTool(),
+    ],
+    stream_intermediate_steps=False,
+    show_tool_calls=False,
+    add_state_in_messages=True,
+    add_history_to_messages=True,
+    num_history_responses=3,
+    add_datetime_to_instructions=True,
+    debug_mode=False,
+    storage=MongoStorage,
+    enable_session_summaries=False,
+    perfiles=["1", "5", "7", "9"]
+)
+
+instructions_cristian_sepulveda = instructions.replace("{user_id}", "1021")
+
+Agente_VT_Cristian_Sepulveda = Agent(
+    name="Agente Vendedor Terreno (Cristian Sepulveda)",
+    agent_id="agente_vt_01_cristian_sepulveda",
+    model=OpenAIChat(id="gpt-4.1", temperature=0.2, api_key=Config.OPENAI_API_KEY),
+    description="Agente especializado en apoyar la venta de un vendedor en terreno (Cristian Sepulveda).",
+    knowledge=knowledge_base,
+    search_knowledge=True,
+    instructions=instructions_cristian_sepulveda,
     tools=[
       VendedorVtTool(),
       ArticulosTool(),
