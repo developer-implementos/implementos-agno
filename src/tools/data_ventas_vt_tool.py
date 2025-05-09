@@ -12,6 +12,7 @@ class DataVentasVTTool(Toolkit):
         self.register(self.run_select_query)
         self.register(self.list_schema)  # Registramos list_schema para que sea visible
         self.register(self.validate_and_rewrite_sql)
+
     def create_clickhouse_client(self):
         """Crea y devuelve un cliente de ClickHouse utilizando la configuración"""
         client_config = config.get_client_config()

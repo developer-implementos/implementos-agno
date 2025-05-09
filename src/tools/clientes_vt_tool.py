@@ -4,8 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 from pymongo import MongoClient
 from agno.tools import Toolkit
-from agno.utils.log import log_debug, log_info, logger
-from bson.json_util import dumps
+from agno.utils.log import log_debug, logger, log_error
 from config.config import Config
 from databases.clickhouse_client import config
 import clickhouse_connect
@@ -573,7 +572,7 @@ class ClientesVtTool(Toolkit):
             ruts_clean = [rut.replace(".", "") for rut in ruts]
 
             client = MongoClient(Config.MONGO_IA)
-            db = client.Implenet
+            db = client.get_database()
             clientes_ia = db.clientes
 
             data = clientes_ia.aggregate([
@@ -769,13 +768,162 @@ class ClientesVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
 
-    def ultimas_compras_clientes(self, ruts: list[str], where_sql: str = "") -> str:
+    def ultimas_compras_clientes(
+        self,
+        ruts: list[str],
+        skus: list[str] = None,
+        dias_no_compra_desde: int = None,
+        dias_no_compra_hasta: int = None,
+        uens: list[str] = None,
+        categorias: list[str] = None,
+        lineas: list[str] = None,
+        monto_factura_minimo: float = None,
+        monto_factura_maximo: float = None
+    ) -> str:
+        """
+        Función para obtener la última compra de múltiples clientes con filtros avanzados
+
+        Args:
+            ruts (list[str]): Lista de RUTs de clientes a consultar
+            skus (list[str], optional): Filtrar por SKUs específicos
+            dias_no_compra_desde (int, optional): Mínimo de días sin comprar
+            dias_no_compra_hasta (int, optional): Máximo de días sin comprar
+            uens (list[str], optional): Filtrar por UENs específicas
+            categorias (list[str], optional): Filtrar por categorías específicas
+            lineas (list[str], optional): Filtrar por líneas específicas
+            monto_factura_minimo (float, optional): Monto mínimo de factura
+            monto_factura_maximo (float, optional): Monto máximo de factura
+
+        Returns:
+            str: Información de las últimas compras en formato JSON
+        """
+        try:
+            # Validar que la lista no esté vacía
+            if not ruts:
+                return json.dumps({"error": "La lista de RUTs no puede estar vacía"}, ensure_ascii=False, indent=2)
+
+            # Formatear los RUTs para la consulta SQL
+            ruts_formateados = [f"'{rut.replace('.', '')}'" for rut in ruts]
+            ruts_str = ', '.join(ruts_formateados)
+
+            # Base de la consulta INNER
+            inner_query = f"""
+            SELECT
+                rutCliente,
+                nombreCliente,
+                documento,
+                ov,
+                fecha,
+                sku,
+                uen,
+                categoria,
+                linea,
+                totalNetoItem,
+                sumState(totalNetoItem) OVER (PARTITION BY rutCliente, documento) as totalDocumento
+            FROM implementos.ventasrealtime
+            WHERE (rutCliente, documento) IN (
+                SELECT
+                    rutCliente,
+                    documento
+                FROM implementos.ventasrealtime
+                WHERE
+                    rutCliente IN ({ruts_str}) AND
+                    tipoTransaccion IN ('FEL', 'BEL')
+                GROUP BY rutCliente, documento
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY rutCliente ORDER BY MAX(fecha) DESC, documento DESC) = 1
+            )
+            """
+
+            # Filtros para la consulta exterior
+            where_clauses = []
+
+            # Filtros de SKUs
+            if skus and len(skus) > 0:
+                skus_formateados = [f"'{sku}'" for sku in skus]
+                where_clauses.append(f"sku IN ({', '.join(skus_formateados)})")
+
+            # Filtros de UENs
+            if uens and len(uens) > 0:
+                uens_formateados = [f"'{uen}'" for uen in uens]
+                where_clauses.append(f"uen IN ({', '.join(uens_formateados)})")
+
+            # Filtros de categorías
+            if categorias and len(categorias) > 0:
+                categorias_formateadas = [f"'{cat}'" for cat in categorias]
+                where_clauses.append(f"categoria IN ({', '.join(categorias_formateadas)})")
+
+            # Filtros de líneas
+            if lineas and len(lineas) > 0:
+                lineas_formateadas = [f"'{linea}'" for linea in lineas]
+                where_clauses.append(f"linea IN ({', '.join(lineas_formateadas)})")
+
+            # Filtros de consulta principal (HAVING)
+            having_clauses = []
+
+            # Filtros de días sin compra
+            if dias_no_compra_desde is not None:
+                having_clauses.append(f"dias_no_compra >= {dias_no_compra_desde}")
+
+            if dias_no_compra_hasta is not None:
+                having_clauses.append(f"dias_no_compra <= {dias_no_compra_hasta}")
+
+            # Filtros de monto de factura
+            if monto_factura_minimo is not None:
+                having_clauses.append(f"total_factura >= {monto_factura_minimo}")
+
+            if monto_factura_maximo is not None:
+                having_clauses.append(f"total_factura <= {monto_factura_maximo}")
+
+            # Construir la consulta final
+            query = f"""
+            SELECT
+                rutCliente as rut,
+                nombreCliente as nombre,
+                documento as folio,
+                ov as ov,
+                toString(toDate(fecha)) as fecha,
+                dateDiff('day', toDate(fecha), today()) as dias_no_compra,
+                sku as sku,
+                uen as uen,
+                categoria as categoria,
+                linea as linea,
+                totalNetoItem as total_linea,
+                sumMerge(totalDocumento) as total_factura
+            FROM
+            ({inner_query}
+            {' WHERE ' + ' AND '.join(where_clauses) if where_clauses else ''}
+            )
+            GROUP BY
+                rutCliente,
+                nombreCliente,
+                documento,
+                ov,
+                fecha,
+                sku,
+                uen,
+                categoria,
+                linea,
+                totalNetoItem
+            {' HAVING ' + ' AND '.join(having_clauses) if having_clauses else ''}
+            ORDER BY rutCliente, sku
+            """
+
+            log_debug(f"Consulta de últimas compras para {len(ruts)} clientes con filtros avanzados")
+            log_debug(f"Query: {query}")
+            result = self.execute_query(query)
+
+            return json.dumps(result, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            log_error(f"Error al consultar últimas compras de clientes: {str(e)}")
+            return json.dumps({"error": f"Error al procesar la consulta: {str(e)}"}, ensure_ascii=False, indent=2)
+
+    def ultimas_compras_clientes_old(self, ruts: list[str]) -> str:
         """
         Función para obtener la última compra de múltiples clientes
 
         Args:
             ruts (list[str]): Lista de RUTs de clientes a consultar
-            where_sql (Optional[str]): Condiciones adicionales para filtrar por sku, uen, categoria, linea, totalNetoItem
 
         Returns:
             str: Información de las últimas compras en formato JSON
@@ -789,37 +937,58 @@ class ClientesVtTool(Toolkit):
             ruts_formateados = [f"'{rut.replace(".", "")}'" for rut in ruts]
             ruts_str = ', '.join(ruts_formateados)
 
-            # Añadir filtro adicional si se proporciona
-            filtro_adicional = f" AND {where_sql}" if where_sql else ""
-
             query = f"""
             SELECT
-              rutCliente as rut,
-              nombreCliente as nombre,
-              documento as folio,
-              ov as ov,
-              toString(toDate(fecha)) as fecha,
-              sku as sku,
-              uen as uen,
-              categoria as categoria,
-              linea as linea,
-              totalNetoItem as total
-            FROM implementos.ventasrealtime
-            WHERE (rutCliente, documento) IN (
-                SELECT rutCliente, documento
-                FROM (
+                rutCliente as rut,
+                nombreCliente as nombre,
+                documento as folio,
+                ov as ov,
+                toString(toDate(fecha)) as fecha,
+                dateDiff('day', toDate(fecha), today()) as dias_no_compra,
+                sku as sku,
+                uen as uen,
+                categoria as categoria,
+                linea as linea,
+                totalNetoItem as total_linea,
+                sumMerge(totalDocumento) as total_factura
+            FROM
+            (
+                SELECT
+                    rutCliente,
+                    nombreCliente,
+                    documento,
+                    ov,
+                    fecha,
+                    sku,
+                    uen,
+                    categoria,
+                    linea,
+                    totalNetoItem,
+                    sumState(totalNetoItem) OVER (PARTITION BY rutCliente, documento) as totalDocumento
+                FROM implementos.ventasrealtime
+                WHERE (rutCliente, documento) IN (
                     SELECT
                         rutCliente,
-                        documento,
-                        ROW_NUMBER() OVER (PARTITION BY rutCliente ORDER BY MAX(fecha) DESC, documento DESC) AS rn
+                        documento
                     FROM implementos.ventasrealtime
                     WHERE
                         rutCliente IN ({ruts_str}) AND
-                        tipoTransaccion IN ('FEL', 'BEL'){filtro_adicional}
+                        tipoTransaccion IN ('FEL', 'BEL')
                     GROUP BY rutCliente, documento
+                    QUALIFY ROW_NUMBER() OVER (PARTITION BY rutCliente ORDER BY MAX(fecha) DESC, documento DESC) = 1
                 )
-                WHERE rn = 1
             )
+            GROUP BY
+                rutCliente,
+                nombreCliente,
+                documento,
+                ov,
+                fecha,
+                sku,
+                uen,
+                categoria,
+                linea,
+                totalNetoItem
             ORDER BY rutCliente, sku
             """
 
@@ -1039,7 +1208,7 @@ class ClientesVtTool(Toolkit):
 
     def resumen_bi_cliente(self, rut_cliente: str, page: int = 1, limit: int = 30, sort: str = "creMes|1") -> str:
         """
-        Obtiene el resumen BI del cliente.
+        Obtiene el resumen BI del cliente. (SOLO USAR SI USUARIO EXPLICITAMENTE INDICA RESUMEN BI)
 
         Args:
             rut_cliente (str): RUT del cliente
@@ -1484,11 +1653,12 @@ class ClientesVtTool(Toolkit):
 
             if response.status_code == 200:
                 result = response.json()
+                print(json.dumps(response.json()))
 
                 deuda_vencida = float(result.get("deudaVencida", 0))
                 deuda_por_vencer = float(result.get("deudaPorVencer", 0))
-                detalle_vencido = result.get("detalleVencido", [])
-                detalle_por_vencer = result.get("detallePorVencer", [])
+                detalle_vencido = result.get("detalleVencido", []) if isinstance(result.get("detalleVencido"), list) else []
+                detalle_por_vencer = result.get("detallePorVencer", []) if isinstance(result.get("detallePorVencer"), list) else []
 
                 # Calcular montos totales y porcentajes
                 deuda_total = deuda_vencida + deuda_por_vencer
@@ -1697,6 +1867,3 @@ class ClientesVtTool(Toolkit):
             error_message = f"Error al obtener notas de crédito para cliente con RUT {rut}: {e}"
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
-
-
-

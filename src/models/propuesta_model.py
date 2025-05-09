@@ -10,6 +10,11 @@ class PropuestasClientesRequest(BaseModel):
     limit: int
     sort: str  # folio|-1
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class ObtenerProductosPropuestaRequest(BaseModel):
     """Equivalente a la interfaz ObtenerProductosPropuestaRequest"""
@@ -23,6 +28,11 @@ class ObtenerProductosPropuestaRequest(BaseModel):
     tipoFlota: str
     additionalOptions: str  # INCLUDE_MATRIX
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Image(BaseModel):
     """Equivalente a la interfaz Image"""
@@ -32,15 +42,22 @@ class Image(BaseModel):
     img_600: List[str] = Field(alias="600")
     img_1000: List[str] = Field(alias="1000")
     img_2000: List[str] = Field(alias="2000")
-    
-    class Config:
-        populate_by_name = True
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class Atributo(BaseModel):
     """Equivalente a la interfaz Atributo"""
     nombre: str
     valor: str
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class Filtro(BaseModel):
@@ -49,10 +66,20 @@ class Filtro(BaseModel):
     valor: str
     orden: int
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Matriz(BaseModel):
     """Equivalente a la interfaz Matriz"""
     sku: str
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class Stock(BaseModel):
@@ -61,13 +88,23 @@ class Stock(BaseModel):
     id: str
     tienda: str
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Precio(BaseModel):
     """Equivalente a la interfaz Precio"""
     precio: float
     precioComun: float
     precioEscala: float
-    precioCliente: float
+    precioCliente: Optional[float] = None  # Modificado: ahora es opcional
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class ArticuloFull(BaseModel):
@@ -88,10 +125,10 @@ class ArticuloFull(BaseModel):
     cyberMonday: int
     calidad: int
     estadoPuntaje: int
-    popularidad: int
-    peso: int
+    popularidad: Optional[int] = None
+    peso: float
     atributos: List[Atributo]
-    filtros: List[Filtro]
+    filtros: List[Filtro] = Field(default_factory=list)  # Modificado: ahora tiene valor por defecto
     matriz: List[Matriz]
     lineSlug: str
     precio: Precio
@@ -104,11 +141,21 @@ class ArticuloFull(BaseModel):
     cyber: Optional[int] = None
     assortment: Optional[int] = None
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class ProductoPropuestaItem(BaseModel):
     """Equivalente a la interfaz ProductoPropuestaItem"""
     uen: str
     articulos: List[ArticuloFull]
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class ObtenerProductosPropuestaResponse(BaseModel):
@@ -118,7 +165,12 @@ class ObtenerProductosPropuestaResponse(BaseModel):
     data: List[ProductoPropuestaItem]
     cantidad: int
     cantidadMatriz: int
-    segmento: str
+    segmento: Optional[str] = None
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class Sucursal(BaseModel):
@@ -126,11 +178,21 @@ class Sucursal(BaseModel):
     codigo: str
     nombre: str
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Cliente(BaseModel):
     """Equivalente a la interfaz Cliente"""
     rut: str
     nombre: str
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class Vendedor(BaseModel):
@@ -142,6 +204,11 @@ class Vendedor(BaseModel):
     cuenta: str
     email: str
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Articulo(BaseModel):
     """Equivalente a la interfaz Articulo"""
@@ -152,6 +219,11 @@ class Articulo(BaseModel):
     cantidad: int
     origenPropuesta: str
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class Log(BaseModel):
     """Equivalente a la interfaz Log"""
@@ -159,6 +231,11 @@ class Log(BaseModel):
     comentario: str
     fecha: str
     usuario: str
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class GeneraPropuestaRequest(BaseModel):
@@ -170,10 +247,20 @@ class GeneraPropuestaRequest(BaseModel):
     vendedor: Vendedor
     articulos: List[Articulo]
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class GenerarCatalogoPropuestaRequest(BaseModel):
     """Equivalente a la interfaz GenerarCatalogoPropuestaRequest"""
     folio: int
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class GenerarCatalogoPropuestaItem(BaseModel):
@@ -181,12 +268,22 @@ class GenerarCatalogoPropuestaItem(BaseModel):
     url: str
     urlPortada: str
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class GenerarCatalogoPropuestaResponse(BaseModel):
     """Equivalente a la interfaz GenerarCatalogoPropuestaResponse"""
     error: bool
     msg: str
     data: Optional[GenerarCatalogoPropuestaItem] = None
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class PropuestaCliente(BaseModel):
@@ -207,6 +304,11 @@ class PropuestaCliente(BaseModel):
     updatedAt: str
     __v: int
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class PropuestasClientesResponse(BaseModel):
     """Equivalente a la interfaz PropuestasClientesResponse"""
@@ -219,10 +321,20 @@ class PropuestasClientesResponse(BaseModel):
     lastPage: int
     data: List[PropuestaCliente]
 
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
+
 
 class ObtenerPropuestaClienteRequest(BaseModel):
     """Equivalente a la interfaz ObtenerPropuestaClienteRequest"""
     folio: int
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }
 
 
 class PropuestaClienteResponse(BaseModel):
@@ -230,3 +342,8 @@ class PropuestaClienteResponse(BaseModel):
     error: bool
     msg: str
     data: PropuestaCliente
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore"
+    }

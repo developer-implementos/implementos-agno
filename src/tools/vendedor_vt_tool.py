@@ -16,7 +16,7 @@ class VendedorVtTool(Toolkit):
         self.register(self.pedidos_pendientes_vendedor)
         self.register(self.obtener_documentos_vendedor)
         self.register(self.obtener_ventas_por_uen)
-        self.register(self.obtener_resumen_dia_vendedor)
+        self.register(self.obtener_performance_dia_vendedor)
 
     def obtener_informacion_usuario(self, codigo_vendedor: int) -> str:
         """
@@ -411,7 +411,7 @@ class VendedorVtTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": error_message}, ensure_ascii=False, indent=2)
 
-    def obtener_resumen_dia_vendedor(self, rut_vendedor: str, fecha: str = None) -> str:
+    def obtener_performance_dia_vendedor(self, rut_vendedor: str, fecha: str = None) -> str:
         """
         Obtiene un informe resumido del desempeño de un vendedor en un día, incluyendo metas, ventas y otros indicadores
 
