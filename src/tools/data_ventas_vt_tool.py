@@ -37,7 +37,7 @@ class DataVentasVTTool(Toolkit):
                 - fecha (DateTime): Fecha de venta
                 - rutCliente (String): ID cliente
                 - nombreCliente (String): Nombre cliente
-                - sucursal (String): Tienda/sucursal
+                - sucursal (String): Nombre de la Tienda/sucursal
                 - tipoVenta (String): Canal de venta
                 - nombreVendedor/rutVendedor/codVendedor (String): Datos del vendedor
                 - tipoTransaccion (String): tipo de Documento fiscal
@@ -56,7 +56,7 @@ class DataVentasVTTool(Toolkit):
                 Descripción: muestra si un sku esta en el assortment de una tienda y su tipologias de importancia
                 COLUMNAS
                 - sku (String): Codigo de producto
-                - sucursal (String): Sucursal / tienda
+                - sucursal (String): Nombre de la Tienda/sucursal
                 - tipologiaTienda (Int32): tipo de importancia para la tienda (1 y 2 son los mas importantes)
                 - tipologiaCompania (Int32): tipo de importancia para la compañia (1 y 2 son los mas importantes)
                 - assortment (Int32): 1 o 0 indica si es parte del assortment de la tienda

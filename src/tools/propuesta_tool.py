@@ -1,5 +1,6 @@
 import json
 import requests
+from urllib.parse import quote
 from typing import List, Dict, Any, Optional, Union
 from agno.tools import Toolkit
 from agno.utils.log import log_debug, log_info, logger
@@ -18,7 +19,7 @@ class PropuestaTool(Toolkit):
         self.register(self.obtener_propuesta)
         self.register(self.generar_propuesta)
         self.register(self.generar_catalogo_propuesta)
-        # self.register(self.obtener_pdf_catalogo)
+        self.register(self.obtener_pdf_catalogo)
 
         # Constante de autenticación
         self.BASIC_AUTH = "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
@@ -289,45 +290,19 @@ class PropuestaTool(Toolkit):
             branch_code (str): Código de la sucursal. Por defecto: SAN BRNRDO
 
         Returns:
-            str: Respuesta en formato JSON con el contenido del PDF en base64
+            str: URL y nombre del archivo
         """
         try:
-            branch_code_encoded = requests.utils.quote(branch_code)
+            branch_code_encoded = quote(branch_code)
             url = f"https://b2b-api.implementos.cl/api/catalogo/proposal-catalogue/pdf/{folio}?branchCode={branch_code_encoded}"
+            filename = f"Propuesta-{folio}.pdf"
 
-            headers = {
-                "Authorization": self.BASIC_AUTH
+            result = {
+                "url": url,
+                "filename": filename,
             }
 
-            response = requests.get(url, headers=headers, stream=True)
-
-            if response.status_code == 200:
-                # Obtener el tipo de contenido
-                content_type = response.headers.get("content-type", "application/pdf")
-
-                # Obtener el nombre del archivo de las cabeceras
-                filename = self._get_filename_from_header(response.headers.get("content-disposition"))
-
-                # Convertir a base64
-                pdf_data = base64.b64encode(response.content).decode('utf-8')
-
-                result = {
-                    "error": False,
-                    "msg": "PDF obtenido correctamente",
-                    "data": {
-                        "content_type": content_type,
-                        "filename": filename,
-                        "pdf_data": pdf_data
-                    }
-                }
-
-                log_debug(f"Se obtuvo el PDF del catálogo para la propuesta con folio {folio}")
-                return json.dumps(result, ensure_ascii=False)
-            else:
-                error_message = f"Error en la solicitud a la API: {response.status_code} - {response.text}"
-                logger.warning(error_message)
-                return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
-
+            return json.dumps(result, ensure_ascii=False)
         except Exception as e:
             error_message = f"Error al obtener PDF del catálogo para la propuesta con folio {folio}: {e}"
             logger.warning(error_message)

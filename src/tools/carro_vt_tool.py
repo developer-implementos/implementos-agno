@@ -9,6 +9,7 @@ from datetime import datetime
 
 from utils.obtener_bodega_vendedor import obtener_bodega_vendedor
 from utils.obtener_token_omni_vendedor import obtener_token_omni_vendedor
+from utils.obtener_usuario import obtener_usuario
 
 
 class CarroVtTool(Toolkit):
@@ -19,8 +20,10 @@ class CarroVtTool(Toolkit):
         self.register(self.modificar_producto_carro)
         self.register(self.eliminar_producto_carro)
         self.register(self.ver_carro)
+        self.register(self.obtener_formas_pago)
         self.register(self.convertir_cotizacion)
-        self.register(self.completar_carro)
+        self.register(self.prefinalizar_carro)
+        self.register(self.finalizar_carro)
 
         # Constantes
         self.BASIC_AUTH = "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
@@ -251,7 +254,6 @@ class CarroVtTool(Toolkit):
         rut: str,
         sku: str,
         cantidad: int,
-        usuario_vendedor: str,
         codigo_vendedor: int,
         sucursal: Optional[str] = None
     ) -> str:
@@ -262,7 +264,6 @@ class CarroVtTool(Toolkit):
             rut (str): RUT del cliente
             sku (str): SKU del producto a agregar
             cantidad (int): Cantidad del producto
-            usuario_vendedor (str): Cuenta de usuario del vendedor
             codigo_vendedor (int): Código del vendedor
             sucursal (Optional[str]): Código de la sucursal
 
@@ -270,6 +271,9 @@ class CarroVtTool(Toolkit):
             str: Resultado de la operación en formato JSON
         """
         try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor=usuario.usuario
+
             # Validar datos básicos
             if not sku:
                 return json.dumps({
@@ -430,7 +434,6 @@ class CarroVtTool(Toolkit):
         rut: str,
         sku: str,
         cantidad: int,
-        usuario_vendedor: str,
         codigo_vendedor: int,
         sucursal: Optional[str] = None
     ) -> str:
@@ -441,7 +444,6 @@ class CarroVtTool(Toolkit):
             rut (str): RUT del cliente
             sku (str): SKU del producto a modificar
             cantidad (int): Nueva cantidad del producto
-            usuario_vendedor (str): Cuenta de usuario del vendedor
             codigo_vendedor (int): Código del vendedor
             sucursal (Optional[str]): Código de la sucursal
 
@@ -449,6 +451,9 @@ class CarroVtTool(Toolkit):
             str: Resultado de la operación en formato JSON
         """
         try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+
             # Normalizar datos
             rut_normalizado = self._normalizar_rut(rut)
             sku = sku.upper()
@@ -593,7 +598,6 @@ class CarroVtTool(Toolkit):
         self,
         rut: str,
         sku: str,
-        usuario_vendedor: str,
         codigo_vendedor: int,
         sucursal: Optional[str] = None
     ) -> str:
@@ -603,7 +607,6 @@ class CarroVtTool(Toolkit):
         Args:
             rut (str): RUT del cliente
             sku (str): SKU del producto a eliminar
-            usuario_vendedor (str): Cuenta de usuario del vendedor
             codigo_vendedor (int): Código del vendedor
             sucursal (Optional[str]): Código de la sucursal
 
@@ -611,6 +614,9 @@ class CarroVtTool(Toolkit):
             str: Resultado de la operación en formato JSON
         """
         try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+
             # Normalizar datos
             rut_normalizado = self._normalizar_rut(rut)
             sku = sku.upper()
@@ -729,7 +735,6 @@ class CarroVtTool(Toolkit):
     def ver_carro(
         self,
         rut: str,
-        usuario_vendedor: str,
         codigo_vendedor: int,
         sucursal: Optional[str] = None
     ) -> str:
@@ -738,7 +743,6 @@ class CarroVtTool(Toolkit):
 
         Args:
             rut (str): RUT del cliente
-            usuario_vendedor (str): Cuenta de usuario del vendedor
             codigo_vendedor (int): Código del vendedor
             sucursal (Optional[str]): Código de la sucursal
 
@@ -746,6 +750,9 @@ class CarroVtTool(Toolkit):
             str: Resultado de la operación en formato JSON
         """
         try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+
             # Normalizar datos
             rut_normalizado = self._normalizar_rut(rut)
 
@@ -794,11 +801,11 @@ class CarroVtTool(Toolkit):
                 return json.dumps(resultado, ensure_ascii=False, indent=2)
 
             # Calcular totales
-            totales = self._calcular_total_carro(carro.get("data", {}))
+            totales = self._calcular_total_carro(carro)
 
             # Formatear productos para la respuesta
             productos_formateados = []
-            for producto in carro.get("data", {}).get("productos", []):
+            for producto in carro.get("productos", []):
                 imagen = ""
                 if producto.get("images"):
                     # Intentar obtener la URL de la imagen
@@ -837,6 +844,54 @@ class CarroVtTool(Toolkit):
                 "ok": False,
                 "mensaje": f"Error al procesar la solicitud: {str(e)}"
             }, ensure_ascii=False, indent=2)
+
+    def recargar_orden(self, ov: str, codigo_vendedor: int) -> dict:
+        """
+        Recarga una orden de venta para que esté disponible en el carrito
+
+        Args:
+            ov (str): Número de la orden de venta a recargar
+            codigo_vendedor (int): Código del vendedor
+
+        Returns:
+            dict: Respuesta de la recarga de la orden
+        """
+        try:
+            # Obtener el token de autenticación del vendedor
+            token = obtener_token_omni_vendedor(codigo_vendedor)
+            if not token:
+                return {
+                    "ok": False,
+                    "mensaje": "No se pudo obtener la autenticación del vendedor."
+                }
+
+            # Realizar la petición para recargar la orden
+            url = f"https://replicacion.implementos.cl/apiOmnichannel/api/carro/cargarDocumento/{ov}"
+            headers = {"Authorization": f"Bearer {token}"}
+
+            response = requests.get(url, headers=headers)
+
+            if response.status_code != 200:
+                logger.error(f"Error al recargar orden: {response.status_code} - {response.text}")
+                return {
+                    "ok": False,
+                    "mensaje": "Error al recargar la orden de venta."
+                }
+
+            resultado = response.json()
+
+            return {
+                "ok": True,
+                "mensaje": f"Orden de venta {ov} recargada correctamente.",
+                "data": resultado
+            }
+
+        except Exception as e:
+            logger.error(f"Error general al recargar orden: {e}")
+            return {
+                "ok": False,
+                "mensaje": f"Error al procesar la solicitud: {str(e)}"
+            }
 
     def convertir_cotizacion(self, folio: str, codigo_vendedor: int) -> str:
         """
@@ -922,6 +977,10 @@ class CarroVtTool(Toolkit):
             resultado = response.json()
             orden_venta = resultado.get("ordenVenta", "")
 
+            if orden_venta:
+                # Recargar la orden para que esté disponible en el carrito de mongo
+                resultado_recarga = self.recargar_orden(orden_venta, codigo_vendedor)
+
             # Construir respuesta
             resultado = {
                 "ok": True,
@@ -941,13 +1000,90 @@ class CarroVtTool(Toolkit):
                 "mensaje": f"Error al procesar la solicitud: {str(e)}"
             }, ensure_ascii=False, indent=2)
 
-    def completar_carro(
+    def obtener_formas_pago(self, rut: str) -> str:
+        """
+        Obtiene las formas de pago disponibles para un cliente
+
+        Args:
+            rut (str): RUT del cliente
+
+        Returns:
+            str: Resultado de la operación en formato JSON con las formas de pago disponibles
+        """
+        try:
+            # Normalizar datos
+            rut_normalizado = self._normalizar_rut(rut)
+
+            # Validar datos básicos
+            if not rut_normalizado:
+                return json.dumps({
+                    "ok": False,
+                    "mensaje": "Se requiere el RUT del cliente."
+                }, ensure_ascii=False, indent=2)
+
+            # Validar cliente
+            resultado_cliente = self._validar_cliente(rut)
+            if not resultado_cliente["ok"]:
+                return json.dumps(resultado_cliente, ensure_ascii=False, indent=2)
+
+            cliente_data = resultado_cliente["data"]
+            rut_normalizado = cliente_data["rut"]
+            nombre_cliente = cliente_data["nombre"]
+            recid_cliente = cliente_data["recid"]
+
+            log_debug(f"Obteniendo formas de pago para el cliente {rut_normalizado} (recid: {recid_cliente})")
+
+            # Obtener información de formas de pago
+            formas_pago_url = f"https://replicacion.implementos.cl/apiCliente/api/cliente/formapago?recid={recid_cliente}"
+            formas_pago_response = requests.get(formas_pago_url, headers={"Authorization": self.BASIC_AUTH})
+
+            if formas_pago_response.status_code != 200:
+                logger.error(
+                    f"Error al obtener formas de pago: {formas_pago_response.status_code} - {formas_pago_response.text}")
+                return json.dumps({
+                    "ok": False,
+                    "mensaje": "Error al obtener las formas de pago disponibles."
+                }, ensure_ascii=False, indent=2)
+
+            formas_pago = formas_pago_response.json().get("data", [])
+
+            log_debug(f"Se encontraron {len(formas_pago)} formas de pago para el cliente {rut_normalizado}")
+
+            # Formatear las formas de pago para la respuesta
+            formas_pago_formateadas = []
+            for forma_pago in formas_pago:
+                formas_pago_formateadas.append({
+                    "codigo": forma_pago.get("codigo", ""),
+                    "nombre": forma_pago.get("nombre", ""),
+                    "descripcion": forma_pago.get("descripcion", "")
+                })
+
+            # Construir respuesta
+            resultado = {
+                "ok": True,
+                "mensaje": f"Formas de pago obtenidas correctamente para {nombre_cliente}.",
+                "data": {
+                    "rut": rut_normalizado,
+                    "nombre_cliente": nombre_cliente,
+                    "formas_pago": formas_pago_formateadas
+                }
+            }
+
+            return json.dumps(resultado, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            logger.error(f"Error general al obtener formas de pago: {e}")
+            return json.dumps({
+                "ok": False,
+                "mensaje": f"Error al procesar la solicitud: {str(e)}"
+            }, ensure_ascii=False, indent=2)
+
+    def _preparar_carro(
         self,
         rut: str,
         tipo_documento: str,
         opcion_entrega: str,
         forma_pago: str,
-        usuario_vendedor: str,
         codigo_vendedor: int,
         sucursal: Optional[str] = None,
         tienda: Optional[str] = None,
@@ -958,7 +1094,7 @@ class CarroVtTool(Toolkit):
         contacto_notificacion: Optional[str] = None,
         contacto_solicitud: Optional[str] = None,
         fechas_entregas: Optional[List[str]] = None
-    ) -> str:
+    ) -> dict|str:
         """
         Completa el proceso de compra generando una Nota de Venta (OV) o Cotización (CO)
 
@@ -967,22 +1103,25 @@ class CarroVtTool(Toolkit):
             tipo_documento (str): Tipo de documento a generar ("Cotización" o "Nota de Venta")
             opcion_entrega (str): Opción de entrega ("Entrega Inmediata", "Retiro en Tienda", "Despacho a Domicilio")
             forma_pago (str): Forma de pago
-            usuario_vendedor (str): Cuenta de usuario del vendedor
             codigo_vendedor (int): Código del vendedor
             sucursal (Optional[str]): Código de la sucursal
             tienda (Optional[str]): Tienda de retiro (requerido si opcion_entrega es "Retiro en Tienda")
-            direccion_facturacion (Optional[str]): Dirección de facturación
-            direccion_despacho (Optional[str]): Dirección de despacho (requerido si opcion_entrega es "Despacho a Domicilio")
+            direccion_facturacion (Optional[str]): Dirección de facturación (Campo "direccionCompleta")
+            direccion_despacho (Optional[str]): Dirección de despacho (requerido si opcion_entrega es "Despacho a Domicilio"), (Campo direccionCompleta)
             observacion (Optional[str]): Observaciones sobre el pedido
             rut_transferencia (Optional[str]): RUT para transferencia (requerido si forma_pago incluye "DP")
-            contacto_notificacion (Optional[str]): Contacto para notificaciones
-            contacto_solicitud (Optional[str]): Contacto de solicitud
+            contacto_notificacion (Optional[str]): Nombre contacto para notificaciones
+            contacto_solicitud (Optional[str]): Nombre contacto de solicitud
             fechas_entregas (Optional[List[str]]): Lista de fechas de entrega para cada grupo
 
         Returns:
             str: Resultado de la operación en formato JSON
         """
         try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+            vendedor_recid = usuario.vendedorRecid
+
             # Normalizar datos
             rut_normalizado = self._normalizar_rut(rut)
             rut_transferencia = self._normalizar_rut(rut_transferencia) if rut_transferencia else rut_normalizado
@@ -1033,26 +1172,15 @@ class CarroVtTool(Toolkit):
                     "mensaje": "No se pudo obtener la autenticación del vendedor."
                 }, ensure_ascii=False, indent=2)
 
-            # Obtener información del cliente
-            try:
-                client = MongoClient(Config.MONGO_NUBE)
-                db = client.Implenet
-                cliente = db.clientes.find_one({"rut": rut_normalizado}, {"nombre": 1, "recid": 1})
+            # Validar cliente
+            resultado_cliente = self._validar_cliente(rut)
+            if not resultado_cliente["ok"]:
+                return json.dumps(resultado_cliente, ensure_ascii=False, indent=2)
 
-                if not cliente:
-                    return json.dumps({
-                        "ok": False,
-                        "mensaje": "Cliente no encontrado."
-                    }, ensure_ascii=False, indent=2)
-
-                nombre_cliente = cliente.get("nombre", "")
-                recid_cliente = cliente.get("recid", 0)
-            except Exception as e:
-                logger.error(f"Error al consultar cliente: {e}")
-                return json.dumps({
-                    "ok": False,
-                    "mensaje": "Error al verificar el cliente."
-                }, ensure_ascii=False, indent=2)
+            cliente_data = resultado_cliente["data"]
+            rut_normalizado = cliente_data["rut"]
+            nombre_cliente = cliente_data["nombre"]
+            recid_cliente = cliente_data["recid"]
 
             # Obtener la bodega del vendedor
             bodega = obtener_bodega_vendedor(codigo_vendedor, sucursal)
@@ -1062,30 +1190,15 @@ class CarroVtTool(Toolkit):
                     "mensaje": "No se encontró la bodega asociada al vendedor."
                 }, ensure_ascii=False, indent=2)
 
-            # Obtener el carrito actual
-            url = f"https://b2b-api.implementos.cl/api/carro/omni"
-            params = {
-                "usuario": rut_normalizado,
-                "sucursal": bodega["codBodega"],
-                "rut": rut_normalizado,
-                "vendedor": usuario_vendedor,
-                "ov": "",
-                "folioPropuesta": ""
-            }
+            # Obtener el carrito del cliente
+            resultado_carro = self._obtener_carro_actual(rut_normalizado, bodega["codBodega"], usuario_vendedor)
+            if not resultado_carro["ok"]:
+                return json.dumps(resultado_carro, ensure_ascii=False, indent=2)
 
-            response = requests.get(url, params=params, headers={"Authorization": self.BASIC_AUTH})
-
-            if response.status_code != 200:
-                logger.error(f"Error al obtener carro: {response.status_code} - {response.text}")
-                return json.dumps({
-                    "ok": False,
-                    "mensaje": "Error al obtener el carrito de compras."
-                }, ensure_ascii=False, indent=2)
-
-            carro_actual = response.json().get("data", {})
+            carro_actual = resultado_carro["data"]
 
             # Verificar que el carrito tenga productos
-            if not carro_actual.get("productos") or len(carro_actual.get("productos", [])) == 0:
+            if carro_actual is None or not carro_actual.get("productos") or len(carro_actual.get("productos", [])) == 0:
                 return json.dumps({
                     "ok": False,
                     "mensaje": "El carrito no tiene productos."
@@ -1300,16 +1413,11 @@ class CarroVtTool(Toolkit):
                         }, ensure_ascii=False, indent=2)
 
                 # Obtener el carrito actualizado después de asignar grupos
-                response = requests.get(url, params=params, headers={"Authorization": self.BASIC_AUTH})
+                resultado_carro = self._obtener_carro_actual(rut_normalizado, bodega["codBodega"], usuario_vendedor)
+                if not resultado_carro["ok"]:
+                    return json.dumps(resultado_carro, ensure_ascii=False, indent=2)
 
-                if response.status_code != 200:
-                    logger.error(f"Error al obtener carro actualizado: {response.status_code} - {response.text}")
-                    return json.dumps({
-                        "ok": False,
-                        "mensaje": "Error al obtener el carrito actualizado."
-                    }, ensure_ascii=False, indent=2)
-
-                carro_actual = response.json().get("data", {})
+                carro_actual = resultado_carro["data"]
 
                 # Verificar que se hayan asignado correctamente los grupos
                 if opcion_entrega != "Entrega Inmediata" and (not carro_actual.get("grupos") or len(carro_actual.get("grupos", [])) == 0):
@@ -1480,6 +1588,7 @@ class CarroVtTool(Toolkit):
             carro_entity["web"] = 0
             carro_entity["usuario"] = rut_normalizado
             carro_entity["vendedor"] = usuario_vendedor.lower()
+            carro_entity["vendedorRecid"] = vendedor_recid
             carro_entity["observacion"] = observacion or ""
             carro_entity["estadoDocumento"] = 1
             carro_entity["numeroDocumento"] = 0
@@ -1564,18 +1673,453 @@ class CarroVtTool(Toolkit):
                                 break
 
                         if flete_seleccionado:
-                            # Actualizar el despacho del grupo con la fecha seleccionada
-                            grupo["despacho"]["fechaEntrega"] = flete_seleccionado["fecha"]
+                            # Obtener el recidDireccion según la opción de entrega
+                            recid_direccion = 0  # Valor por defecto
+                            if opcion_entrega == "Despacho a Domicilio" and direccion_seleccionada:
+                                recid_direccion = direccion_seleccionada.get("recid", 0)
+                            elif opcion_entrega == "Retiro en Tienda" and tienda_seleccionada:
+                                recid_direccion = tienda_seleccionada.get("recid", 0)
+
+                            # Actualizar el despacho del grupo con todos los campos necesarios
+                            grupo["despacho"]["tipo"] = flete_seleccionado.get("opcionServicio", {}).get("tser_codi",
+                                                                                                         "STD")
+                            grupo["despacho"][
+                                "codTipo"] = "VEN- RPTDA" if opcion_entrega == "Retiro en Tienda" else "VEN- DPCLI"
+                            grupo["despacho"]["origen"] = grupo.get("origen", bodega["codBodega"])
+                            grupo["despacho"]["recidDireccion"] = recid_direccion
+                            grupo["despacho"]["codProveedor"] = flete_seleccionado.get("proveedor", {}).get("codigo",
+                                                                                                            "IMPLEMENTOS")
+                            grupo["despacho"]["nombreProveedor"] = flete_seleccionado.get("proveedor", {}).get("nombre",
+                                                                                                               "IMPLEMENTOS")
+                            grupo["despacho"]["precio"] = flete_seleccionado.get("valor", 0)
+                            grupo["despacho"]["descuento"] = 0
+                            grupo["despacho"]["observacion"] = observacion or ""
+                            grupo["despacho"]["diasNecesarios"] = flete_seleccionado["opcionServicio"][
+                                "diashabilesnecesarios"]
                             grupo["despacho"]["fechaPicking"] = flete_seleccionado["fechaPicking"]
+                            grupo["despacho"]["fechaEntrega"] = flete_seleccionado["fecha"]
                             grupo["despacho"]["fechaDespacho"] = flete_seleccionado["fechaPicking"]
-                            grupo["despacho"]["diasNecesarios"] = flete_seleccionado["opcionServicio"]["diashabilesnecesarios"]
+                            grupo["despacho"]["identificador"] = flete_seleccionado.get("identificador",
+                                                                                        grupo.get("identificador",
+                                                                                                  f"{grupo.get('origen', bodega['codBodega'])}|0"))
+                            grupo["despacho"]["codTipoEnvioVenta"] = flete_seleccionado.get("tipoEnvioVenta", {}).get(
+                                "codigo", 0)
+                            grupo["despacho"]["tipoEnvioVenta"] = flete_seleccionado.get("tipoEnvioVenta", {}).get(
+                                "descripcion", "Envio con stock bodega")
+                else:
+                    # Si no se especificaron fechas de entrega, usar la primera fecha disponible de cada grupo
+                    for grupo in carro_entity["grupos"]:
+                        if grupo.get("flete") and len(grupo["flete"]) > 0:
+                            # Seleccionar el primer flete disponible
+                            flete_seleccionado = grupo["flete"][0]
+
+                            # Obtener el recidDireccion según la opción de entrega
+                            recid_direccion = 0  # Valor por defecto
+                            if opcion_entrega == "Despacho a Domicilio" and 'direccion_seleccionada' in locals():
+                                recid_direccion = direccion_seleccionada.get("recid", 0)
+                            elif opcion_entrega == "Retiro en Tienda" and 'tienda_seleccionada' in locals():
+                                recid_direccion = tienda_seleccionada.get("recid", 0)
+
+                            # Actualizar el despacho del grupo con todos los campos necesarios
+                            grupo["despacho"]["tipo"] = flete_seleccionado.get("opcionServicio", {}).get("tser_codi",
+                                                                                                         "STD")
+                            grupo["despacho"][
+                                "codTipo"] = "VEN- RPTDA" if opcion_entrega == "Retiro en Tienda" else "VEN- DPCLI"
+                            grupo["despacho"]["origen"] = grupo.get("origen", bodega["codBodega"])
+                            grupo["despacho"]["recidDireccion"] = recid_direccion
+                            grupo["despacho"]["codProveedor"] = flete_seleccionado.get("proveedor", {}).get("codigo",
+                                                                                                            "IMPLEMENTOS")
+                            grupo["despacho"]["nombreProveedor"] = flete_seleccionado.get("proveedor", {}).get("nombre",
+                                                                                                               "IMPLEMENTOS")
+                            grupo["despacho"]["precio"] = flete_seleccionado.get("valor", 0)
+                            grupo["despacho"]["descuento"] = 0
+                            grupo["despacho"]["observacion"] = observacion or ""
+                            grupo["despacho"]["diasNecesarios"] = flete_seleccionado["opcionServicio"][
+                                "diashabilesnecesarios"]
+                            grupo["despacho"]["fechaPicking"] = flete_seleccionado["fechaPicking"]
+                            grupo["despacho"]["fechaEntrega"] = flete_seleccionado["fecha"]
+                            grupo["despacho"]["fechaDespacho"] = flete_seleccionado["fechaPicking"]
+                            grupo["despacho"]["identificador"] = flete_seleccionado.get("identificador",
+                                                                                        grupo.get("identificador",
+                                                                                                  f"{grupo.get('origen', bodega['codBodega'])}|0"))
+                            grupo["despacho"]["codTipoEnvioVenta"] = flete_seleccionado.get("tipoEnvioVenta", {}).get(
+                                "codigo", 0)
+                            grupo["despacho"]["tipoEnvioVenta"] = flete_seleccionado.get("tipoEnvioVenta", {}).get(
+                                "descripcion", "Envio con stock bodega")
+
+                            log_debug(
+                                f"Seleccionada automáticamente la primera fecha disponible para el grupo: {flete_seleccionado['fecha']}")
 
                 # Usar el despacho del primer grupo como despacho principal
                 if carro_entity["grupos"]:
                     carro_entity["despacho"] = carro_entity["grupos"][0]["despacho"]
 
+            return carro_entity
+
+        except Exception as e:
+            logger.error(f"Error general al completar carrito: {e}")
+            return json.dumps({
+                "ok": False,
+                "mensaje": f"Error al procesar la solicitud: {str(e)}"
+            }, ensure_ascii=False, indent=2)
+
+    def prefinalizar_carro(
+        self,
+        rut: str,
+        tipo_documento: str,
+        opcion_entrega: str,
+        forma_pago: str,
+        codigo_vendedor: int,
+        sucursal: Optional[str] = None,
+        tienda: Optional[str] = None,
+        direccion_facturacion: Optional[str] = None,
+        direccion_despacho: Optional[str] = None,
+        observacion: Optional[str] = None,
+        rut_transferencia: Optional[str] = None,
+        contacto_notificacion: Optional[str] = None,
+        contacto_solicitud: Optional[str] = None,
+        fechas_entregas: Optional[List[str]] = None
+    ) -> str:
+        """
+        Resume el proceso de compra mostrando información del documento a generar, ya sea una Nota de Venta (OV) o Cotización (CO)
+
+        Args:
+            rut (str): RUT del cliente
+            tipo_documento (str): Tipo de documento a generar ("Cotización" o "Nota de Venta")
+            opcion_entrega (str): Opción de entrega ("Entrega Inmediata", "Retiro en Tienda", "Despacho a Domicilio")
+            forma_pago (str): Forma de pago
+            codigo_vendedor (int): Código del vendedor
+            sucursal (Optional[str]): Código de la sucursal
+            tienda (Optional[str]): Tienda de retiro (requerido si opcion_entrega es "Retiro en Tienda")
+            direccion_facturacion (Optional[str]): Dirección de facturación (Campo "direccionCompleta")
+            direccion_despacho (Optional[str]): Dirección de despacho (requerido si opcion_entrega es "Despacho a Domicilio"), (Campo direccionCompleta)
+            observacion (Optional[str]): Observaciones sobre el pedido
+            rut_transferencia (Optional[str]): RUT para transferencia (requerido si forma_pago incluye "DP")
+            contacto_notificacion (Optional[str]): Nombre contacto para notificaciones
+            contacto_solicitud (Optional[str]): Nombre contacto de solicitud
+            fechas_entregas (Optional[List[str]]): Lista de fechas de entrega para cada grupo
+
+        Returns:
+            str: Resultado de la operación en formato JSON
+        """
+        try:
+            carro_entity = self._preparar_carro(
+                rut=rut,
+                tipo_documento=tipo_documento,
+                opcion_entrega=opcion_entrega,
+                forma_pago=forma_pago,
+                codigo_vendedor=codigo_vendedor,
+                sucursal=sucursal,
+                tienda=tienda,
+                direccion_facturacion=direccion_facturacion,
+                direccion_despacho=direccion_despacho,
+                observacion=observacion,
+                rut_transferencia=rut_transferencia,
+                contacto_notificacion=contacto_notificacion,
+                contacto_solicitud=contacto_solicitud,
+                fechas_entregas=fechas_entregas,
+            )
+
+            if isinstance(carro_entity, str):
+                return carro_entity
+
+            # Obtener información básica
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+
+            # Validar cliente
+            resultado_cliente = self._validar_cliente(rut)
+            if not resultado_cliente["ok"]:
+                return json.dumps(resultado_cliente, ensure_ascii=False, indent=2)
+
+            cliente_data = resultado_cliente["data"]
+            rut_normalizado = cliente_data["rut"]
+            nombre_cliente = cliente_data["nombre"]
+
+            # Obtener bodega
+            resultado_bodega = self._obtener_bodega(codigo_vendedor, sucursal)
+            if not resultado_bodega["ok"]:
+                return json.dumps(resultado_bodega, ensure_ascii=False, indent=2)
+
+            bodega = resultado_bodega["data"]
+
+            # Formatear productos para la respuesta
+            productos_formateados = []
+            for producto in carro_entity.get("productos", []):
+                imagen = ""
+                if producto.get("images"):
+                    # Intentar obtener la URL de la imagen
+                    for size in ["150", "250", "450"]:
+                        if size in producto["images"] and len(producto["images"][size]) > 0:
+                            imagen = producto["images"][size][0]
+                            break
+
+                productos_formateados.append({
+                    "imagen": imagen,
+                    "sku": producto.get("sku", ""),
+                    "nombre": producto.get("nombre", ""),
+                    "cantidad": producto.get("cantidad", 0),
+                    "precio_unitario": producto.get("precio", 0),
+                    "precio_neto_unitario": round(producto.get("precio", 0) / (1 + self.IVA)),
+                    "subtotal": round(producto.get("precio", 0) * producto.get("cantidad", 0))
+                })
+
+            # Calcular totales
+            totales = self._calcular_total_carro(carro_entity)
+
+            # Información de entrega según el tipo seleccionado
+            info_entrega = {
+                "tipo": opcion_entrega
+            }
+
+            if opcion_entrega == "Retiro en Tienda":
+                info_entrega["tienda"] = tienda
+            elif opcion_entrega == "Despacho a Domicilio":
+                info_entrega["direccion"] = direccion_despacho
+
+            # Formatear grupos si existen
+            grupos_formateados = []
+            if carro_entity.get("grupos"):
+                for i, grupo in enumerate(carro_entity.get("grupos", [])):
+                    # Productos en este grupo
+                    productos_grupo = []
+                    for p in grupo.get("productos", []):
+                        imagen = ""
+                        if p.get("images"):
+                            for size in ["150", "250", "450"]:
+                                if size in p["images"] and len(p["images"][size]) > 0:
+                                    imagen = p["images"][size][0]
+                                    break
+
+                        productos_grupo.append({
+                            "sku": p.get("sku", ""),
+                            "nombre": p.get("nombre", ""),
+                            "cantidad": p.get("cantidad", 0),
+                            "precio_unitario": p.get("precio", 0),
+                            "subtotal": p.get("precio", 0) * p.get("cantidad", 0)
+                        })
+
+                    # Fechas disponibles para este grupo
+                    fechas_disponibles = []
+                    fecha_seleccionada = None
+
+                    if grupo.get("flete"):
+                        for flete in grupo.get("flete", []):
+                            fecha_flete = datetime.fromisoformat(flete["fecha"].replace("Z", "+00:00")).strftime(
+                                "%d/%m/%Y")
+                            costo_despacho = flete.get("valor", 0)
+                            fechas_disponibles.append({
+                                "fecha": fecha_flete,
+                                "costo_despacho": costo_despacho
+                            })
+
+                            # Verificar si es la fecha seleccionada
+                            if fechas_entregas and i < len(fechas_entregas) and fecha_flete == fechas_entregas[i]:
+                                fecha_seleccionada = {
+                                    "fecha": fecha_flete,
+                                    "costo_despacho": costo_despacho
+                                }
+
+                    # Despacho configurado para este grupo
+                    info_despacho = {}
+                    if grupo.get("despacho"):
+                        despacho = grupo["despacho"]
+                        info_despacho = {
+                            "precio": despacho.get("precio", 0),
+                            "descuento": despacho.get("descuento", 0),
+                            "proveedor": despacho.get("nombreProveedor", ""),
+                            "fecha_entrega": despacho.get("fechaEntrega", "")
+                        }
+
+                    grupos_formateados.append({
+                        "id": i + 1,
+                        "origen": grupo.get("origen", ""),
+                        "productos": productos_grupo,
+                        "fechas_disponibles": fechas_disponibles,
+                        "fecha_seleccionada": fecha_seleccionada,
+                        "despacho": info_despacho
+                    })
+
+            # Identificar productos sin surtir (productos en el carrito que no están en ningún grupo)
+            productos_sin_surtir = []
+            if carro_entity.get("grupos") and carro_entity.get("productos"):
+                # Recopilar todos los SKUs en el carrito
+                skus_carrito = {p["sku"] for p in carro_entity.get("productos", [])}
+
+                # Recopilar todos los SKUs que están en algún grupo
+                skus_en_grupos = set()
+                for grupo in carro_entity.get("grupos", []):
+                    for p in grupo.get("productos", []):
+                        skus_en_grupos.add(p["sku"])
+
+                # Identificar SKUs que están en el carrito pero no en grupos
+                skus_sin_surtir = skus_carrito - skus_en_grupos
+
+                # Formatear los productos sin surtir
+                for producto in carro_entity.get("productos", []):
+                    if producto["sku"] in skus_sin_surtir:
+                        imagen = ""
+                        if producto.get("images"):
+                            for size in ["150", "250", "450"]:
+                                if size in producto["images"] and len(producto["images"][size]) > 0:
+                                    imagen = producto["images"][size][0]
+                                    break
+
+                        productos_sin_surtir.append({
+                            "imagen": imagen,
+                            "sku": producto.get("sku", ""),
+                            "nombre": producto.get("nombre", ""),
+                            "cantidad": producto.get("cantidad", 0),
+                            "precio_unitario": producto.get("precio", 0),
+                            "precio_neto_unitario": round(producto.get("precio", 0) / (1 + self.IVA)),
+                            "subtotal": round(producto.get("precio", 0) * producto.get("cantidad", 0)),
+                            "motivo": producto.get("conflictoEntrega") or "Sin disponibilidad para despacho"
+                        })
+
+            # Construir respuesta amigable para LLM
+            respuesta = {
+                "ok": True,
+                "mensaje": f"Resumen de {tipo_documento} a generar para el cliente {nombre_cliente}",
+                "data": {
+                    "documento": {
+                        "tipo": tipo_documento,
+                        "folio": carro_entity.get("folio", ""),
+                        "observacion": observacion or ""
+                    },
+                    "cliente": {
+                        "rut": rut_normalizado,
+                        "nombre": nombre_cliente
+                    },
+                    "vendedor": {
+                        "codigo": codigo_vendedor,
+                        "usuario": usuario_vendedor,
+                        "sucursal": bodega.get("nombre", bodega["codBodega"])
+                    },
+                    "entrega": info_entrega,
+                    "forma_pago": {
+                        "codigo": forma_pago,
+                        "rut_transferencia": rut_transferencia if "DP" in forma_pago else None
+                    },
+                    "contactos": {
+                        "notificacion": contacto_notificacion,
+                        "solicitud": contacto_solicitud
+                    },
+                    "direccion_facturacion": direccion_facturacion,
+                    "productos": productos_formateados,
+                    "productos_sin_surtir": productos_sin_surtir if productos_sin_surtir else None,
+                    "grupos": grupos_formateados if grupos_formateados else None,
+                    "totales": totales
+                },
+                "parametros_finalizacion": {
+                    "rut": rut,
+                    "tipo_documento": tipo_documento,
+                    "opcion_entrega": opcion_entrega,
+                    "forma_pago": forma_pago,
+                    "codigo_vendedor": codigo_vendedor,
+                    "sucursal": sucursal,
+                    "tienda": tienda,
+                    "direccion_facturacion": direccion_facturacion,
+                    "direccion_despacho": direccion_despacho,
+                    "observacion": observacion,
+                    "rut_transferencia": rut_transferencia,
+                    "contacto_notificacion": contacto_notificacion,
+                    "contacto_solicitud": contacto_solicitud,
+                    "fechas_entregas": fechas_entregas
+                }
+            }
+
+            return json.dumps(respuesta, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"Error general al completar carrito: {e}")
+            return json.dumps({
+                "ok": False,
+                "mensaje": f"Error al procesar la solicitud: {str(e)}"
+            }, ensure_ascii=False, indent=2)
+
+    def finalizar_carro(
+        self,
+        rut: str,
+        tipo_documento: str,
+        opcion_entrega: str,
+        forma_pago: str,
+        codigo_vendedor: int,
+        sucursal: Optional[str] = None,
+        tienda: Optional[str] = None,
+        direccion_facturacion: Optional[str] = None,
+        direccion_despacho: Optional[str] = None,
+        observacion: Optional[str] = None,
+        rut_transferencia: Optional[str] = None,
+        contacto_notificacion: Optional[str] = None,
+        contacto_solicitud: Optional[str] = None,
+        fechas_entregas: Optional[List[str]] = None
+    ) -> str:
+        """
+        Finaliza el proceso de compra generando una Nota de Venta (OV) o Cotización (CO)
+
+        Args:
+            rut (str): RUT del cliente
+            tipo_documento (str): Tipo de documento a generar ("Cotización" o "Nota de Venta")
+            opcion_entrega (str): Opción de entrega ("Entrega Inmediata", "Retiro en Tienda", "Despacho a Domicilio")
+            forma_pago (str): Forma de pago
+            codigo_vendedor (int): Código del vendedor
+            sucursal (Optional[str]): Código de la sucursal
+            tienda (Optional[str]): Tienda de retiro (requerido si opcion_entrega es "Retiro en Tienda")
+            direccion_facturacion (Optional[str]): Dirección de facturación (Campo "direccionCompleta")
+            direccion_despacho (Optional[str]): Dirección de despacho (requerido si opcion_entrega es "Despacho a Domicilio"), (Campo direccionCompleta)
+            observacion (Optional[str]): Observaciones sobre el pedido
+            rut_transferencia (Optional[str]): RUT para transferencia (requerido si forma_pago incluye "DP")
+            contacto_notificacion (Optional[str]): Nombre contacto para notificaciones
+            contacto_solicitud (Optional[str]): Nombre contacto de solicitud
+            fechas_entregas (Optional[List[str]]): Lista de fechas de entrega para cada grupo
+
+        Returns:
+            str: Resultado de la operación en formato JSON
+        """
+        try:
+            usuario = obtener_usuario(codigo_vendedor)
+            usuario_vendedor = usuario.usuario
+            token = obtener_token_omni_vendedor(codigo_vendedor)
+
+            # Normalizar datos
+            rut_normalizado = self._normalizar_rut(rut)
+            rut_transferencia = self._normalizar_rut(rut_transferencia) if rut_transferencia else rut_normalizado
+
+            # Obtener bodega
+            resultado_bodega = self._obtener_bodega(codigo_vendedor, sucursal)
+            if not resultado_bodega["ok"]:
+                return json.dumps(resultado_bodega, ensure_ascii=False, indent=2)
+
+            bodega = resultado_bodega["data"]
+
+            # Obtener el carrito del cliente
+            resultado_carro = self._obtener_carro_actual(rut_normalizado, bodega["codBodega"], usuario_vendedor)
+            if not resultado_carro["ok"]:
+                return json.dumps(resultado_carro, ensure_ascii=False, indent=2)
+
+            carro_actual = resultado_carro["data"]
+
+            carro_entity = self._preparar_carro(
+                rut=rut,
+                tipo_documento=tipo_documento,
+                opcion_entrega=opcion_entrega,
+                forma_pago=forma_pago,
+                codigo_vendedor=codigo_vendedor,
+                sucursal=sucursal,
+                tienda=tienda,
+                direccion_facturacion=direccion_facturacion,
+                direccion_despacho=direccion_despacho,
+                observacion=observacion,
+                rut_transferencia=rut_transferencia,
+                contacto_notificacion=contacto_notificacion,
+                contacto_solicitud=contacto_solicitud,
+                fechas_entregas=fechas_entregas,
+            )
+
+            if isinstance(carro_entity, str):
+                return carro_entity
+
             # Generar el documento
-            if forma_pago_seleccionada["codigo"] == "LINK_EC":
+            if carro_entity["formaPago"] == "LINK_EC":
                 # Si es botón de pago, crear un link de pago
                 carro_entity["id"] = carro_actual.get("_id", "")
 
@@ -1605,12 +2149,10 @@ class CarroVtTool(Toolkit):
                 # Construir respuesta con link de pago
                 return json.dumps({
                     "ok": True,
-                    "mensaje": f"Se ha generado el link de pago exitosamente para {nombre_cliente}.",
+                    "mensaje": f"Se ha generado el link de pago exitosamente",
                     "data": {
                         "tipo_documento": tipo_documento,
                         "link_pago": url_pago,
-                        "rut": rut_normalizado,
-                        "nombre_cliente": nombre_cliente
                     }
                 }, ensure_ascii=False, indent=2)
 
@@ -1655,9 +2197,9 @@ class CarroVtTool(Toolkit):
 
                 # Construir mensaje de respuesta
                 if len(documentos) > 1:
-                    mensaje = f"Se han generado los documentos '{', '.join(documentos)}' para {nombre_cliente}."
+                    mensaje = f"Se han generado los documentos '{', '.join(documentos)}'."
                 else:
-                    mensaje = f"Se ha generado el documento '{documentos[0]}' para {nombre_cliente}."
+                    mensaje = f"Se ha generado el documento '{documentos[0]}'."
 
                 # Construir respuesta con documentos generados
                 return json.dumps({
@@ -1666,8 +2208,6 @@ class CarroVtTool(Toolkit):
                     "data": {
                         "tipo_documento": tipo_documento,
                         "documentos": documentos,
-                        "rut": rut_normalizado,
-                        "nombre_cliente": nombre_cliente
                     }
                 }, ensure_ascii=False, indent=2)
 
@@ -1680,29 +2220,39 @@ class CarroVtTool(Toolkit):
 
 
 tool = CarroVtTool()
+print(tool._preparar_carro(
+    rut="17679133-0",
+    tipo_documento="Nota de Venta",
+    opcion_entrega="Despacho a Domicilio",
+    forma_pago="EF",
+    codigo_vendedor=1190,
+    direccion_despacho="Guillermo Carter y Gallo 784 LA SERENA. ELQUI,REGION DE COQUIMBO."
+))
 
 # print("- VER CARRO")
-# print(tool.ver_carro(rut="17679133-0",codigo_vendedor=1190,usuario_vendedor="jespinoza"))
+# print(tool.ver_carro(rut="17679133-0",codigo_vendedor=1190))
 # print("- AGREGAR PRODUCTO CARRO")
-# print(tool.agregar_producto_carro(rut="17679133-0",sku="WUXACC0002",cantidad=1,codigo_vendedor=1190,usuario_vendedor="jespinoza"))
-# print(tool.agregar_producto_carro(rut="17679133-0",sku="WUXACC0001",cantidad=1,codigo_vendedor=1190,usuario_vendedor="jespinoza"))
+# print(tool.agregar_producto_carro(rut="17679133-0",sku="WUXACC0002",cantidad=1,codigo_vendedor=1190))
+# print(tool.agregar_producto_carro(rut="17679133-0",sku="WUXACC0001",cantidad=1,codigo_vendedor=1190))
 # print("- MODIFICAR PRODUCTO CARRO")
-# print(tool.modificar_producto_carro(rut="17679133-0",sku="WUXACC0002",cantidad=2,codigo_vendedor=1190,usuario_vendedor="jespinoza"))
+# print(tool.modificar_producto_carro(rut="17679133-0",sku="WUXACC0002",cantidad=2,codigo_vendedor=1190))
 # print("- ELIMINAR PRODUCTO CARRO")
-# print(tool.eliminar_producto_carro(rut="17679133-0",sku="WUXACC0001",codigo_vendedor=1190,usuario_vendedor="jespinoza"))
+# print(tool.eliminar_producto_carro(rut="17679133-0",sku="WUXACC0001",codigo_vendedor=1190))
 # print("- VER CARRO 2")
-# print(tool.ver_carro(rut="17679133-0",codigo_vendedor=1190,usuario_vendedor="jespinoza"))
-print("- COMPLETAR CARRO")
-print(tool.completar_carro(
-    rut="17679133-0",
-    codigo_vendedor=1190,
-    usuario_vendedor="jespinoza",
-    forma_pago="EF",
-    observacion="",
-    opcion_entrega="Retiro en Tienda",
-    tipo_documento="Cotización",
-    sucursal="SAN BERNARDO",
-    tienda="SAN BERNARDO"
-))
+# print(tool.ver_carro(rut="17679133-0",codigo_vendedor=1190))
+# print("- COMPLETAR CARRO")
+# print(tool.completar_carro(
+#     rut="17679133-0",
+#     codigo_vendedor=1190,
+#     forma_pago="EF",
+#     observacion="",
+#     opcion_entrega="Retiro en Tienda",
+#     tipo_documento="Cotización",
+#     sucursal="SAN BERNARDO",
+#     tienda="SAN BERNARDO"
+# ))
+
+# print("- CONVERTIR COTIZACION")
+# print(tool.convertir_cotizacion(folio="CO-0485371",codigo_vendedor=1190))
 
 #         self.register(self.convertir_cotizacion)
