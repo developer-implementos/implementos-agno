@@ -19,7 +19,7 @@ class PropuestaTool(Toolkit):
         self.register(self.obtener_propuesta)
         self.register(self.generar_propuesta)
         self.register(self.generar_catalogo_propuesta)
-        self.register(self.obtener_pdf_catalogo)
+        self.register(self.obtener_pdf_propuesta)
 
         # Constante de autenticación
         self.BASIC_AUTH = "Basic c2VydmljZXM6MC49ajNEMnNzMS53Mjkt"
@@ -281,7 +281,7 @@ class PropuestaTool(Toolkit):
             logger.warning(error_message)
             return json.dumps({"error": True, "msg": error_message}, ensure_ascii=False, indent=2)
 
-    def obtener_pdf_catalogo(self, folio: int, branch_code: str) -> str:
+    def obtener_pdf_propuesta(self, folio: int, branch_code: str) -> str:
         """
         Obtiene el PDF de un catálogo de propuesta
 

@@ -7,6 +7,7 @@ from config.config import Config
 from pymongo import MongoClient
 from datetime import datetime
 
+from utils.detectar_objeto_cercano import detectar_objeto_cercano
 from utils.obtener_bodega_vendedor import obtener_bodega_vendedor
 from utils.obtener_token_omni_vendedor import obtener_token_omni_vendedor
 from utils.obtener_usuario import obtener_usuario
@@ -1242,11 +1243,8 @@ class CarroVtTool(Toolkit):
                     tiendas = tiendas_response.json().get("data", {}).get("todos", [])
                     tienda_seleccionada = None
 
-                    # Buscar la tienda especificada
-                    for t in tiendas:
-                        if tienda.lower() in t.get("nombre", "").lower():
-                            tienda_seleccionada = t
-                            break
+                    if tienda is not None:
+                        tienda_seleccionada = detectar_objeto_cercano(tienda.lower(), tiendas, ["nombre"])
 
                     if not tienda_seleccionada:
                         return json.dumps({
@@ -1334,11 +1332,12 @@ class CarroVtTool(Toolkit):
                     direcciones = direcciones_response.json()
                     direccion_seleccionada = None
 
-                    # Buscar la dirección especificada
-                    for d in direcciones:
-                        if direccion_despacho.lower() in d.get("direccionCompleta", "").lower():
-                            direccion_seleccionada = d
-                            break
+                    if direccion_despacho is not None:
+                        direccion_seleccionada = detectar_objeto_cercano(
+                            texto=direccion_despacho.lower(),
+                            array=direcciones,
+                            keys=["direccionCompleta"]
+                        )
 
                     if not direccion_seleccionada:
                         return json.dumps({
@@ -1484,21 +1483,17 @@ class CarroVtTool(Toolkit):
             contacto_notif = None
             contacto_solic = None
 
-            if contacto_notificacion:
-                for c in contactos:
-                    if contacto_notificacion.lower() in c.get("nombre", "").lower():
-                        contacto_notif = c
-                        break
-            else:
+            if contacto_notificacion is not None:
+                contacto_notif = detectar_objeto_cercano(contacto_notificacion.lower(), contactos, ["nombre"])
+            if contacto_notif is None:
                 # Usar el primer contacto disponible
                 contacto_notif = contactos[0] if contactos else None
 
-            if contacto_solicitud:
-                for c in contactos:
-                    if contacto_solicitud.lower() in c.get("nombre", "").lower():
-                        contacto_solic = c
-                        break
-            else:
+            contactos_solicitud = [c for c in contactos if
+                                   c.get("tipo") == "COM" and (c.get("cargo") == "COMPRAS" or not c.get("cargo"))]
+            if contacto_solicitud is not None:
+                contacto_solic = detectar_objeto_cercano(contacto_solicitud.lower(), contactos_solicitud, ["nombre"])
+            if contacto_solic is None:
                 # Buscar contactos de tipo solicitud (COM)
                 contactos_solicitud = [c for c in contactos if c.get("tipo") == "COM" and (c.get("cargo") == "COMPRAS" or not c.get("cargo"))]
                 contacto_solic = contactos_solicitud[0] if contactos_solicitud else (contactos[0] if contactos else None)
@@ -1526,13 +1521,14 @@ class CarroVtTool(Toolkit):
                 }, ensure_ascii=False, indent=2)
 
             formas_pago = formas_pago_response.json().get("data", [])
-            forma_pago_seleccionada = None
+            forma_pago_seleccionada = "EF"
 
-            # Obtener el código de la forma de pago seleccionada
-            for fp in formas_pago:
-                if forma_pago.lower() in fp.get("nombre", "").lower() or forma_pago.lower() in fp.get("codigo", "").lower():
-                    forma_pago_seleccionada = fp
-                    break
+            if forma_pago is not None:
+                forma_pago_seleccionada = detectar_objeto_cercano(
+                    texto=forma_pago.lower(),
+                    array=formas_pago,
+                    keys=["nombre","codigo"]
+                )
 
             if not forma_pago_seleccionada:
                 return json.dumps({
@@ -1553,12 +1549,13 @@ class CarroVtTool(Toolkit):
             direcciones_fact = direcciones_fact_response.json()
             direccion_fact_seleccionada = None
 
-            if direccion_facturacion:
-                for d in direcciones_fact:
-                    if direccion_facturacion.lower() in d.get("direccionCompleta", "").lower():
-                        direccion_fact_seleccionada = d
-                        break
-            else:
+            if direccion_facturacion is not None:
+                direccion_fact_seleccionada = detectar_objeto_cercano(
+                    texto=direccion_facturacion.lower(),
+                    array=direcciones_fact,
+                    keys=["direccionCompleta"]
+                )
+            if direccion_fact_seleccionada is None:
                 # Usar la primera dirección disponible
                 direccion_fact_seleccionada = direcciones_fact[0] if direcciones_fact else None
 
@@ -1768,8 +1765,8 @@ class CarroVtTool(Toolkit):
         rut: str,
         tipo_documento: str,
         opcion_entrega: str,
-        forma_pago: str,
         codigo_vendedor: int,
+        forma_pago: str = "EF",
         sucursal: Optional[str] = None,
         tienda: Optional[str] = None,
         direccion_facturacion: Optional[str] = None,
@@ -1787,8 +1784,8 @@ class CarroVtTool(Toolkit):
             rut (str): RUT del cliente
             tipo_documento (str): Tipo de documento a generar ("Cotización" o "Nota de Venta")
             opcion_entrega (str): Opción de entrega ("Entrega Inmediata", "Retiro en Tienda", "Despacho a Domicilio")
-            forma_pago (str): Forma de pago
             codigo_vendedor (int): Código del vendedor
+            forma_pago (str): Forma de pago
             sucursal (Optional[str]): Código de la sucursal
             tienda (Optional[str]): Tienda de retiro (requerido si opcion_entrega es "Retiro en Tienda")
             direccion_facturacion (Optional[str]): Dirección de facturación (Campo "direccionCompleta")
@@ -2041,8 +2038,8 @@ class CarroVtTool(Toolkit):
         rut: str,
         tipo_documento: str,
         opcion_entrega: str,
-        forma_pago: str,
         codigo_vendedor: int,
+        forma_pago: str = "EF",
         sucursal: Optional[str] = None,
         tienda: Optional[str] = None,
         direccion_facturacion: Optional[str] = None,
@@ -2060,8 +2057,8 @@ class CarroVtTool(Toolkit):
             rut (str): RUT del cliente
             tipo_documento (str): Tipo de documento a generar ("Cotización" o "Nota de Venta")
             opcion_entrega (str): Opción de entrega ("Entrega Inmediata", "Retiro en Tienda", "Despacho a Domicilio")
-            forma_pago (str): Forma de pago
             codigo_vendedor (int): Código del vendedor
+            forma_pago (str): Forma de pago
             sucursal (Optional[str]): Código de la sucursal
             tienda (Optional[str]): Tienda de retiro (requerido si opcion_entrega es "Retiro en Tienda")
             direccion_facturacion (Optional[str]): Dirección de facturación (Campo "direccionCompleta")
@@ -2219,15 +2216,15 @@ class CarroVtTool(Toolkit):
             }, ensure_ascii=False, indent=2)
 
 
-tool = CarroVtTool()
-print(tool._preparar_carro(
-    rut="17679133-0",
-    tipo_documento="Nota de Venta",
-    opcion_entrega="Despacho a Domicilio",
-    forma_pago="EF",
-    codigo_vendedor=1190,
-    direccion_despacho="Guillermo Carter y Gallo 784 LA SERENA. ELQUI,REGION DE COQUIMBO."
-))
+# tool = CarroVtTool()
+# print(tool.prefinalizar_carro(
+#     rut="17679133-0",
+#     tipo_documento="Cotización",
+#     opcion_entrega="Despacho a Domicilio",
+#     forma_pago="EF",
+#     codigo_vendedor=1190,
+#     direccion_despacho="guillermo carter y gallo 784"
+# ))
 
 # print("- VER CARRO")
 # print(tool.ver_carro(rut="17679133-0",codigo_vendedor=1190))
