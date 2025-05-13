@@ -26,7 +26,7 @@ class DataVentasVTTool(Toolkit):
             raise
 
     def list_schema(self):
-        """Schema Table ventasrealtime in database implementos"""
+        """Schema tables"""
 
         return """
                 Tabla: implementos.ventasrealtime
@@ -37,7 +37,7 @@ class DataVentasVTTool(Toolkit):
                 - fecha (DateTime): Fecha de venta
                 - rutCliente (String): ID cliente
                 - nombreCliente (String): Nombre cliente
-                - sucursal (String): Nombre de la Tienda/sucursal. Ejemplo: SAN BERNARDO
+                - sucursal (String): Nombre de la sucursal.
                 - tipoVenta (String): Canal de venta
                 - nombreVendedor/rutVendedor/codVendedor (String): Datos del vendedor
                 - tipoTransaccion (String): tipo de Documento fiscal
@@ -52,11 +52,23 @@ class DataVentasVTTool(Toolkit):
                 ORDENADO POR: (fecha, rutCliente, sku, uen, categoria, linea, codVendedor, sucursal)
                 ENGINE: MergeTree
 
+                Tabla: implementos.sucursales
+                Descripción: sucursales de la empresa
+                COLUMNAS
+                - codigo (String): Codigo de la sucursal
+                - nombre (String): Nombre de la sucursal.
+                - zona (String): Zona geográfica (NORTE, SUR, CENTRO, CENTRO SUR)
+                ÍNDICE: (nombre)
+                ORDENADO POR: (codigo)
+                ENGINE = MergeTree
+                JOINS:
+                    implementos.sucursales.nombre = implementos.ventasrealtime.sucursal
+
                 Tabla: implementos.estado_tiendas
                 Descripción: muestra si un sku esta en el assortment de una tienda y su tipologias de importancia
                 COLUMNAS
                 - sku (String): Codigo de producto
-                - sucursal (String): Nombre de la Tienda/sucursal. Ejemplo: SAN BERNARDO
+                - sucursal (String): Nombre de la sucursal.
                 - tipologiaTienda (Int32): tipo de importancia para la tienda (1 y 2 son los mas importantes)
                 - tipologiaCompania (Int32): tipo de importancia para la compañia (1 y 2 son los mas importantes)
                 - assortment (Int32): 1 o 0 indica si es parte del assortment de la tienda

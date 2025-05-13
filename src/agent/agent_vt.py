@@ -183,6 +183,7 @@ PEDIDO: OV-xxx/CO-xxx/#xxx
 - Usar list_schema->run_select_query->[Error]->validate_and_rewrite_sql->run_select_query
 
 ### REGLAS CLICKHOUSE CRÍTICAS
+⚠️ CRÍTICO: implementos.ventasrealtime.sucursal es el NOMBRE de la sucursal. (Bien: sucursal='SAN BERNARDO', Mal: 'SAN BRNRDO')
 - SELECT sin agregación: incluir EXACTAMENTE en GROUP BY
 - CAMPOS CALCULADOS: nunca referencia directa (SUM(a)/nullIf(SUM(b),0) no "margen")
 - ALIAS CALCULADO: nunca referencias el alias del campo en un where. Mal: "SELECT formatDateTime(..) as fecha FROM... WHERE fecha >= '...'"
@@ -192,8 +193,6 @@ PEDIDO: OV-xxx/CO-xxx/#xxx
 - COMPARACIONES: períodos SIEMPRE equivalentes y proporcionales
 - LÍMITES: LIMIT 100 máximo en toda consulta
 - VALORES ÚNICOS: uniqExact() nunca COUNT(DISTINCT)
-- CAMPOS:
-    + sucursal: Nombre de la sucursal (Bien: sucursal='SAN BERNARDO', Mal: 'SAN BRNRDO')
 """
 
 # Agente
