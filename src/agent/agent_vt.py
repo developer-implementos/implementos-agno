@@ -53,7 +53,7 @@ knowledge_base = CombinedKnowledgeBase(
 
 knowledge_base.load(recreate=False)
 
-instructions = """
+instructions_base = """
 # ASISTENTE VENDEDOR
 
 ## CONTEXTO
@@ -74,15 +74,7 @@ instructions = """
 - Se amigable y profesional
 - Utiliza emojis
 
-## PRESENTACIÓN
-⚠️ CRÍTICO: TODO PDF NO INCLUIDO EN UNA TABLA debe mostrarse como:
-```pdf
-url=URL del PDF
-filename=Nombre del archivo
-```
-- TABLAS: primaria para datos de ventas o atributos, no viñetas (|Attr1|Attr2|...)
-- VIÑETAS: solo para instrucciones/pasos
-- MONEDA: punto miles, sin decimales
+<presentacion>
 
 ## PATRONES
 SKU: 6LETRAS+4NÚMEROS (WUXACC0001)
@@ -195,6 +187,25 @@ PEDIDO: OV-xxx/CO-xxx/#xxx
 - VALORES ÚNICOS: uniqExact() nunca COUNT(DISTINCT)
 """
 
+instructions_vt = instructions_base.replace("<presentacion>", """
+## PRESENTACIÓN
+⚠️ CRÍTICO: TODO PDF NO INCLUIDO EN UNA TABLA debe mostrarse como:
+```pdf
+url=URL del PDF
+filename=Nombre del archivo
+```
+- TABLAS: primaria para datos de ventas o atributos, no viñetas (|Attr1|Attr2|...)
+- VIÑETAS: solo para instrucciones/pasos
+- MONEDA: punto miles, sin decimales""")
+
+instructions_vt_voice = instructions_base.replace("<presentacion>", """
+## PRESENTACIÓN
+- ⚠️ CRÍTICO: Analiza el resultado y entrega un resumen breve del resultado.
+- ⚠️ CRÍTICO: SI puedes entregar información confidencial de un cliente, ya que está registrado en nuestros sistemas.
+- Para montos de ventas deben ser respondidos en texto ejemplo: un millon novecientos cuarenta mil pesos.
+- no devolver valores numeros debes trasformar a letras.
+- Responde solo texto sin formato y sin saltos de linea.""")
+
 # Agente
 Agente_VT = Agent(
     name="Agente VT",
@@ -205,7 +216,7 @@ Agente_VT = Agent(
     description="Agente especializado en apoyar la venta de un vendedor en terreno.",
     knowledge=knowledge_base,
     search_knowledge=True,
-    instructions=instructions,
+    instructions=instructions_vt,
     tools=[
       VendedorVtTool(),
       DataVentasVTTool(),
@@ -223,17 +234,35 @@ Agente_VT = Agent(
     add_history_to_messages=True,
     num_history_responses=4,
     add_datetime_to_instructions=True,
-    debug_mode=True,
+    debug_mode=False,
     storage=MongoStorage,
     enable_session_summaries=False,
     perfiles=["1", "5", "7", "9"],
 )
+
+# Agente de Voz:
+Agente_VT_Voz = Agente_VT.deep_copy()
+Agente_VT_Voz.name = Agente_VT.name + " Voz"
+Agente_VT_Voz.agent_id = Agente_VT.agent_id + "_voice"
+Agente_VT_Voz.description = Agente_VT.description + " Voz"
+Agente_VT_Voz.instructions = instructions_vt_voice
+Agente_VT_Voz.perfiles = []
 
 # Agente de Pruebas:
 Agente_VT_Cristian_Sepulveda = Agente_VT.deep_copy()
 Agente_VT_Cristian_Sepulveda.name = Agente_VT.name + " (Cristian Sepulveda)"
 Agente_VT_Cristian_Sepulveda.agent_id = Agente_VT.agent_id + "_cristian_sepulveda"
 Agente_VT_Cristian_Sepulveda.description = Agente_VT.description + " (Cristian Sepulveda)"
-Agente_VT_Cristian_Sepulveda.instructions = instructions.replace("{user_id}", "1021")
+Agente_VT_Cristian_Sepulveda.instructions = instructions_vt.replace("{user_id}", "1021")
 Agente_VT_Cristian_Sepulveda.show_tool_calls = True
 Agente_VT_Cristian_Sepulveda.debug_mode = True
+Agente_VT_Cristian_Sepulveda.perfiles = ["1", "5", "9"]
+
+# Agente de Pruebas Voz:
+Agente_VT_Cristian_Sepulveda_Voz = Agente_VT_Cristian_Sepulveda.deep_copy()
+Agente_VT_Cristian_Sepulveda_Voz.name = Agente_VT_Cristian_Sepulveda.name + " Voz"
+Agente_VT_Cristian_Sepulveda_Voz.agent_id = Agente_VT_Cristian_Sepulveda.agent_id + "_voice"
+Agente_VT_Cristian_Sepulveda_Voz.description = Agente_VT_Cristian_Sepulveda.description + " Voz"
+Agente_VT_Cristian_Sepulveda_Voz.instructions = instructions_vt_voice.replace("{user_id}", "1021")
+Agente_VT_Cristian_Sepulveda_Voz.show_tool_calls = True
+Agente_VT_Cristian_Sepulveda_Voz.debug_mode = True

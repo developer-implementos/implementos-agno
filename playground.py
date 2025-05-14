@@ -19,7 +19,7 @@ from agent.agent_clientes import Agente_Clientes
 from agent.agent_documentos import Agente_Documentos
 from agent.agent_ecommerce import Agente_Ecommerce
 from agent.agent_maestro_mecanico import Agente_Maestro_Mecanico
-from agent.agent_vt import Agente_VT, Agente_VT_Cristian_Sepulveda
+from agent.agent_vt import Agente_VT, Agente_VT_Voz, Agente_VT_Cristian_Sepulveda, Agente_VT_Cristian_Sepulveda_Voz
 from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch
 from config.config import Config
 
@@ -40,7 +40,7 @@ app = Playground(
         Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
         Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch,
-        Agente_VT, Agente_VT_Cristian_Sepulveda,
+        Agente_VT, Agente_VT_Voz, Agente_VT_Cristian_Sepulveda, Agente_VT_Cristian_Sepulveda_Voz,
         Agente_Articulos,
         Agente_Clientes,
         Agente_Documentos,
