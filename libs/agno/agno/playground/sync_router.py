@@ -233,6 +233,9 @@ def get_sync_playground_router(
         else:
             agent.monitoring = False
 
+        if user_id is not None:
+            agent.user_id = user_id
+
         base64_images: List[Image] = []
         base64_audios: List[Audio] = []
         base64_videos: List[Video] = []
@@ -638,6 +641,9 @@ def get_sync_playground_router(
             team.monitoring = True
         else:
             team.monitoring = False
+
+        if user_id is not None:
+            agent.user_id = user_id
 
         base64_images: List[Image] = []
         base64_audios: List[Audio] = []

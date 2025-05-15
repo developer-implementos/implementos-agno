@@ -143,7 +143,7 @@ class MongoDbStorage(Storage):
                 elif self.mode == "workflow":
                     query["workflow_id"] = entity_id
 
-            cursor = self.collection.find(query).sort("created_at", -1)
+            cursor = self.collection.find(query).limit(20).sort("created_at", -1)
             sessions: List[Session] = []
             for doc in cursor:
                 # Remove MongoDB _id before converting to AgentSession

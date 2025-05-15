@@ -12,6 +12,7 @@ from agno.media import Audio, Image, Video
 from agno.media import File as FileMedia
 from agno.memory.agent import AgentMemory
 from agno.memory.v2 import Memory
+from agno.models.anthropic import Claude
 from agno.playground.operator import (
     format_tools,
     get_agent_by_id,
@@ -25,6 +26,7 @@ from agno.playground.schemas import (
     AgentGetResponse,
     AgentModel,
     AgentRenameRequest,
+    AgentAutoRenameRequest,
     AgentSessionsResponse,
     MemoryResponse,
     TeamGetResponse,
@@ -43,6 +45,7 @@ from agno.storage.session.agent import AgentSession
 from agno.storage.session.team import TeamSession
 from agno.storage.session.workflow import WorkflowSession
 from agno.team.team import Team
+from agno.tools.reasoning import ReasoningTools
 from agno.utils.log import logger
 from agno.workflow.workflow import Workflow
 
@@ -204,6 +207,8 @@ def get_async_playground_router(
                     knowledge={"name": agent.knowledge.__class__.__name__} if agent.knowledge else None,
                     description=agent.description,
                     instructions=agent.instructions,
+                    perfiles=agent.perfiles,
+                    audio_real_time=agent.audio_real_time,
                 )
             )
 
@@ -218,11 +223,14 @@ def get_async_playground_router(
         session_id: Optional[str] = Form(None),
         user_id: Optional[str] = Form(None),
         files: Optional[List[UploadFile]] = File(None),
+        is_deep_search_active: bool = Form(False),
     ):
-        logger.debug(f"AgentRunRequest: {message} {session_id} {user_id} {agent_id}")
-        agent = get_agent_by_id(agent_id, agents)
+        agent_id_original = agent_id
+        agent = get_agent_by_id(agent_id_original, agents)
         if agent is None:
             raise HTTPException(status_code=404, detail="Agent not found")
+
+        logger.debug(f"AgentRunRequest: {message} {session_id} {user_id} {agent_id}")
 
         if session_id is not None and session_id != "":
             logger.debug(f"Continuing session: {session_id}")
@@ -234,6 +242,9 @@ def get_async_playground_router(
             agent.monitoring = True
         else:
             agent.monitoring = False
+
+        if user_id is not None:
+            agent.user_id = user_id
 
         base64_images: List[Image] = []
         base64_audios: List[Audio] = []
@@ -377,6 +388,9 @@ def get_async_playground_router(
                     session_id=session.session_id,
                     session_name=session.session_data.get("session_name") if session.session_data else None,
                     created_at=session.created_at,
+                    # Campos nuevos
+                    agent_id=session.agent_id,
+                    agent_name=session.agent_data.get("name") if session.agent_data else None,
                 )
             )
         return agent_sessions
@@ -434,6 +448,28 @@ def get_async_playground_router(
             if session.session_id == session_id:
                 agent.rename_session(body.name, session_id=session_id)
                 return JSONResponse(content={"message": f"successfully renamed session {session.session_id}"})
+
+        return JSONResponse(status_code=404, content="Session not found.")
+
+    @playground_router.post("/agents/{agent_id}/sessions/{session_id}/auto_rename")
+    async def auto_rename_agent_session(agent_id: str, session_id: str, body: AgentAutoRenameRequest):
+        agent = get_agent_by_id(agent_id, agents)
+        if agent is None:
+            return JSONResponse(status_code=404, content=f"couldn't find agent with {agent_id}")
+
+        if agent.storage is None:
+            return JSONResponse(status_code=404, content="Agent does not have storage enabled.")
+
+        all_agent_sessions: List[AgentSession] = agent.storage.get_all_sessions(user_id=body.user_id)  # type: ignore
+        for session in all_agent_sessions:
+            if session.session_id == session_id:
+                agent.session_id = session_id
+                new_session_name = agent.auto_rename_session_v2()
+                content = {
+                    "message": f"successfully renamed session {session.session_id}",
+                    "new_session_name": new_session_name
+                }
+                return JSONResponse(content=content)
 
         return JSONResponse(status_code=404, content="Session not found.")
 
@@ -645,6 +681,9 @@ def get_async_playground_router(
             team.monitoring = True
         else:
             team.monitoring = False
+
+        if user_id is not None:
+            agent.user_id = user_id
 
         base64_images: List[Image] = []
         base64_audios: List[Audio] = []

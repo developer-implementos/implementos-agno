@@ -1,0 +1,14 @@
+version: '3.3'
+
+services:
+  implementos-agno-api:
+    build: .
+    container_name: implementos-agno-api
+    ports:
+      - "7777:7777"
+    volumes:
+      - ./.env:/app/.env
+      - ./key-storage.json:/app/key-storage.json
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped

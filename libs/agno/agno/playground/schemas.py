@@ -30,6 +30,8 @@ class AgentGetResponse(BaseModel):
     knowledge: Optional[Dict[str, Any]] = None
     description: Optional[str] = None
     instructions: Optional[Union[List[str], str, Callable]] = None
+    perfiles: Optional[List[str]]  = None
+    audio_real_time: bool  = None
 
     @classmethod
     def from_agent(self, agent: Agent) -> "AgentGetResponse":
@@ -79,10 +81,14 @@ class AgentRunRequest(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     files: Optional[List[UploadFile]] = None
+    is_deep_search_active: bool = False
 
 
 class AgentRenameRequest(BaseModel):
     name: str
+    user_id: str
+
+class AgentAutoRenameRequest(BaseModel):
     user_id: str
 
 
@@ -91,6 +97,8 @@ class AgentSessionsResponse(BaseModel):
     session_id: Optional[str] = None
     session_name: Optional[str] = None
     created_at: Optional[int] = None
+    agent_id: Optional[str] = None
+    agent_name: Optional[str] = None
 
 
 class MemoryResponse(BaseModel):
@@ -151,6 +159,7 @@ class TeamGetResponse(BaseModel):
     response_model: Optional[str] = None
     storage: Optional[Dict[str, Any]] = None
     memory: Optional[Dict[str, Any]] = None
+    perfiles: Optional[List[str]] = None
 
     @classmethod
     def from_team(self, team: Team) -> "TeamGetResponse":
@@ -198,6 +207,7 @@ class TeamGetResponse(BaseModel):
                 else None
                 for member in team.members
             ],
+            perfiles=team.perfiles
         )
 
 

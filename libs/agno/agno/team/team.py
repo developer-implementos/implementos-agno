@@ -226,6 +226,12 @@ class Team:
     # This helps us improve the Teams implementation and provide better support
     telemetry: bool = True
 
+    ############################################################
+    # PARAMETROS PROPIOS DE IMPLEMENTOS
+    ############################################################
+    # Perfiles para ser visibles de un agente
+    perfiles: Optional[List[str]] = None
+
     def __init__(
         self,
         members: List[Union[Agent, "Team"]],
@@ -283,6 +289,7 @@ class Team:
         show_members_responses: bool = False,
         monitoring: bool = False,
         telemetry: bool = True,
+        perfiles:  Optional[List[str]] = None,
     ):
         self.members = members
 
@@ -355,6 +362,8 @@ class Team:
 
         self.monitoring = monitoring
         self.telemetry = telemetry
+
+        self.perfiles = perfiles
 
         # --- Params not to be set by user ---
         self.session_metrics: Optional[SessionMetrics] = None
@@ -6613,6 +6622,8 @@ class Team:
             team_data["model"] = self.model.to_dict()
         if self.mode is not None:
             team_data["mode"] = self.mode
+        if self.perfiles is not None:
+            team_data["perfiles"] = self.perfiles
         return team_data
 
     def _get_session_data(self) -> Dict[str, Any]:

@@ -278,6 +278,13 @@ class Agent:
     # This helps us improve the Agent and provide better support
     telemetry: bool = True
 
+    ############################################################
+    # PARAMETROS PROPIOS DE IMPLEMENTOS
+    ############################################################
+    # Perfiles para ser visibles de un agente
+    perfiles: Optional[List[str]] = None
+    audio_real_time: bool = False
+
     def __init__(
         self,
         *,
@@ -359,6 +366,8 @@ class Agent:
         debug_mode: bool = False,
         monitoring: bool = False,
         telemetry: bool = True,
+        perfiles:  Optional[List[str]] = None,
+        audio_real_time: bool = False,
     ):
         self.model = model
         self.name = name
@@ -458,6 +467,9 @@ class Agent:
         self.debug_mode = debug_mode
         self.monitoring = monitoring
         self.telemetry = telemetry
+
+        self.perfiles = perfiles
+        self.audio_real_time = audio_real_time
 
         # --- Params not to be set by user ---
         self.session_metrics: Optional[SessionMetrics] = None
@@ -2360,6 +2372,18 @@ class Agent:
             except Exception as e:
                 log_warning(f"Failed to resolve context for '{key}': {e}")
 
+    def load_user_memories(self) -> None:
+        self.memory = cast(AgentMemory, self.memory)
+        if self.memory and self.memory.create_user_memories:
+            if self.user_id is not None and self.memory.user_id is None:
+                self.memory.user_id = self.user_id
+
+            self.memory.load_user_memories()
+            if self.user_id is not None:
+                log_debug(f"Memories loaded for user: {self.user_id}")
+            else:
+                log_debug("Memories loaded")
+
     def get_agent_data(self) -> Dict[str, Any]:
         agent_data: Dict[str, Any] = {}
         if self.name is not None:
@@ -2368,6 +2392,10 @@ class Agent:
             agent_data["agent_id"] = self.agent_id
         if self.model is not None:
             agent_data["model"] = self.model.to_dict()
+        if self.perfiles is not None:
+            agent_data["perfiles"] = self.perfiles
+        if self.audio_real_time is not None:
+            agent_data["audio_real_time"] = self.audio_real_time
         return agent_data
 
     def get_session_data(self) -> Dict[str, Any]:
@@ -2644,6 +2672,7 @@ class Agent:
             else:
                 # New session, just reset the state
                 self.session_name = None
+            self.load_user_memories()
         return self.agent_session
 
     def write_to_storage(self, session_id: str, user_id: Optional[str] = None) -> Optional[AgentSession]:
@@ -3851,8 +3880,9 @@ class Agent:
 
         system_message = Message(
             role=self.system_message_role,
-            content="Please provide a suitable name for this conversation in maximum 5 words. "
-            "Remember, do not exceed 5 words.",
+            # content="Please provide a suitable name for this conversation in maximum 5 words. "
+            # "Remember, do not exceed 5 words.",
+            content="Por favor proporciona un nombre adecuado para esta conversación en máximo 5 palabras. Recuerda, no excedas las 5 palabras.",
         )
         user_message = Message(role=self.user_message_role, content=gen_session_name_prompt)
         generate_name_messages = [system_message, user_message]
@@ -3883,6 +3913,25 @@ class Agent:
         self.write_to_storage(user_id=self.user_id, session_id=self.session_id)  # type: ignore
         # -*- Log Agent Session
         self._log_agent_session(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+
+    def auto_rename_session_v2(self) -> str:
+        """Automatically rename the session and save to storage"""
+
+        if self.session_id is None:
+            raise Exception("Session ID is not set")
+
+        # -*- Read from storage
+        self.read_from_storage(session_id=self.session_id, user_id=self.user_id)  # type: ignore
+        # -*- Generate name for session
+        generated_session_name = self.generate_session_name(session_id=self.session_id)
+        log_debug(f"Generated Session Name: {generated_session_name}")
+        # -*- Rename thread
+        self.session_name = generated_session_name
+        # -*- Save to storage
+        self.write_to_storage(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+        # -*- Log Agent Session
+        self._log_agent_session(user_id=self.user_id, session_id=self.session_id)  # type: ignore
+        return self.session_name
 
     def delete_session(self, session_id: str):
         """Delete the current session and save to storage"""
