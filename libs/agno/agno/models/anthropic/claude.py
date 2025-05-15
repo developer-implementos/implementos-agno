@@ -44,7 +44,7 @@ class Claude(Model):
     provider: str = "Anthropic"
 
     # Request parameters
-    max_tokens: Optional[int] = 4096
+    max_tokens: Optional[int] = 12096
     thinking: Optional[Dict[str, Any]] = None
     temperature: Optional[float] = None
     stop_sequences: Optional[List[str]] = None
@@ -62,6 +62,9 @@ class Claude(Model):
 
     # Parametros propios IMPLEMENTOS
     _estado_actual: str = ""
+    _cache_control_count: int = 0
+
+    _MAX_CACHE_CONTROLS: int = 3
 
     def _get_client_params(self) -> Dict[str, Any]:
         client_params: Dict[str, Any] = {}
@@ -133,8 +136,37 @@ class Claude(Model):
         Returns:
             Dict[str, Any]: The request keyword arguments.
         """
+        self._cache_control_count = 0
         request_kwargs = self.request_kwargs.copy()
-        request_kwargs["system"] = system_message
+        if isinstance(system_message, str):
+            # Si es texto simple, convertir al nuevo formato e incluir cache_control
+            request_kwargs["system"] = [
+                {
+                    "type": "text",
+                    "text": system_message,
+                    "cache_control": {"type": "ephemeral"}
+                }
+            ]
+        elif isinstance(system_message, list):
+            # Si ya es una lista de objetos de mensaje
+            formatted_messages = []
+            for msg in system_message:
+                if not isinstance(msg, dict) or "type" not in msg or "text" not in msg:
+                    raise ValueError("Cada mensaje debe tener 'type' y 'text'")
+
+                formatted_msg = {"type": msg["type"], "text": msg["text"]}
+
+                # Preservar cache_control si existe o agregar uno por defecto
+                if "cache_control" in msg:
+                    formatted_msg["cache_control"] = msg["cache_control"]
+                else:
+                    formatted_msg["cache_control"] = {"type": "ephemeral"}
+
+                formatted_messages.append(formatted_msg)
+
+            request_kwargs["system"] = formatted_messages
+        else:
+            raise TypeError("system_message debe ser una cadena de texto o una lista de objetos de mensaje")
 
         if tools:
             request_kwargs["tools"] = self._format_tools_for_model(tools)
@@ -184,6 +216,9 @@ class Claude(Model):
                     "required": required_params,
                 },
             }
+            if self._cache_control_count < self._MAX_CACHE_CONTROLS:
+                tool["cache_control"] = {"type": "ephemeral"}
+                self._cache_control_count += 1
             parsed_tools.append(tool)
         return parsed_tools
 
@@ -479,9 +514,28 @@ class Claude(Model):
             # if response.delta.type == "text_delta":
             #     model_response.content = response.delta.text
             if response.delta.type == "input_json_delta":
-                self._estado_actual = "+"  # Usar self para acceder al estado de la instancia
-            if response.delta.type == "text_delta":
-                model_response.content = response.delta.text
+                self._estado_actual = "+"  # Marca que viene un resultado de herramienta
+            elif response.delta.type == "text_delta":
+                content_text = response.delta.text
+                # Detectar si esto es parte de un resultado de herramienta de forma más robusta
+                is_tool_result = (self._estado_actual == "+" or
+                                  (content_text and content_text.strip().startswith("+ ")))
+                if is_tool_result:
+                    # Formatear correctamente el resultado de la herramienta
+                    if not content_text.strip().startswith("+ "):
+                        content_text = "\n + " + content_text
+                    else:
+                        content_text = "\n" + content_text
+                    # Limpiar el estado después de procesar un resultado de herramienta
+                    self._estado_actual = ""
+                # Asignar el contenido procesado
+                model_response.content = content_text
+            elif response.delta.type == "citation_delta":
+                citation = response.delta.citation
+                model_response.citations = Citations(raw=citation)
+                model_response.citations.documents.append(  # type: ignore
+                    DocumentCitation(document_title=citation.document_title, cited_text=citation.cited_text)
+                )
             # Handle thinking content
             elif response.delta.type == "thinking_delta":
                 model_response.thinking = response.delta.thinking
