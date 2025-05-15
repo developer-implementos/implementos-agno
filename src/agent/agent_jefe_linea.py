@@ -812,7 +812,7 @@ Al final de cada análisis se debe incluir **un cierre con valor para el usuario
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY,
         ),
-             path="")
+             path="data/json")
 
     knowledge_base.load(recreate=False)
 

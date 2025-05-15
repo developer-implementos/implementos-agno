@@ -15,9 +15,9 @@ knowledge_base = CombinedKnowledgeBase(
             vector_db=Qdrant(
             collection="recipes_pdf",
             url=Config.QDRANT_URL,
-            api_key=Config.QDRANT_API_KEY,           
+            api_key=Config.QDRANT_API_KEY,
         ),
-             path=""
+             path="data/pdf"
         ),
         CSVKnowledgeBase(
             vector_db=Qdrant(
@@ -25,7 +25,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/csv"
         ),
         DocxKnowledgeBase(
             vector_db=Qdrant(
@@ -33,7 +33,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/docx"
         ),
         JSONKnowledgeBase(
             vector_db=Qdrant(
@@ -41,7 +41,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/json"
         ),
         TextKnowledgeBase(
            vector_db=Qdrant(
@@ -49,7 +49,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/text"
         ),
     ],
     vector_db=Qdrant(

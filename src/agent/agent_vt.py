@@ -25,7 +25,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/json"
         ),
         JSONKnowledgeBase(
             vector_db=Qdrant(
@@ -33,7 +33,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/json"
         ),
         JSONKnowledgeBase(
             vector_db=Qdrant(
@@ -41,7 +41,7 @@ knowledge_base = CombinedKnowledgeBase(
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY
             ),
-            path=""
+            path="data/json"
         ),
     ],
     vector_db=Qdrant(

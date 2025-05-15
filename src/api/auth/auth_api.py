@@ -54,6 +54,8 @@ async def login(login_data: LoginRequest):
         if not user_data or not user_data.get("codEmpleado"):
             raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectas")
 
+        user_data["nombre"] = capitalizar_string(user_data.get("nombre"))
+
         # Preparar datos para guardar en MongoDB
         auth_info = {
             "codigo_empleado": user_data.get("codEmpleado"),

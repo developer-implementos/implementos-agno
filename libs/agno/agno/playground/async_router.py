@@ -74,6 +74,8 @@ async def chat_response_streamer(
             run_response_chunk = cast(RunResponse, run_response_chunk)
             yield run_response_chunk.to_json()
     except Exception as e:
+        import traceback
+        traceback.print_exc(limit=3)
         error_response = RunResponse(
             content=str(e),
             event=RunEvent.run_error,
@@ -338,7 +340,7 @@ def get_async_playground_router(
                     else:
                         raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        if stream:
+        if stream and agent.is_streamable:
             return StreamingResponse(
                 chat_response_streamer(
                     agent,
@@ -736,7 +738,7 @@ def get_async_playground_router(
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        if stream:
+        if stream and team.is_streamable:
             return StreamingResponse(
                 team_chat_response_streamer(
                     team,
