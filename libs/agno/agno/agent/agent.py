@@ -2672,7 +2672,7 @@ class Agent:
             else:
                 # New session, just reset the state
                 self.session_name = None
-            self.load_user_memories()
+            #self.load_user_memories()
         return self.agent_session
 
     def write_to_storage(self, session_id: str, user_id: Optional[str] = None) -> Optional[AgentSession]:

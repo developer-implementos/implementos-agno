@@ -3,7 +3,7 @@
 -e ./libs/infra/agno_docker
 aiofiles==24.1.0
 annotated-types==0.7.0
-anthropic==0.49.0
+anthropic==0.51.0
 anyio==4.7.0
 beautifulsoup4==4.13.4
 boto3==1.35.93
@@ -20,6 +20,7 @@ dnspython==2.7.0
 docker==7.1.0
 docstring_parser==0.16
 duckduckgo_search==8.0.1
+exceptiongroup==1.2.2
 fastapi==0.115.12
 gitdb==4.0.11
 GitPython==3.1.43

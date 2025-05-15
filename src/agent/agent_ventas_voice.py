@@ -64,7 +64,7 @@ COLUMNAS:
             url=Config.QDRANT_URL,
             api_key=Config.QDRANT_API_KEY,
         ),
-             path="")
+             path="data/json")
     knowledge_base.load(recreate=False)
     Agente_Ventas_Voice = Agent(
         name="Agente de Ventas Voz",
