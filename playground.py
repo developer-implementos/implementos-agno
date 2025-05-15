@@ -24,6 +24,7 @@ from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSear
 from config.config import Config
 
 from api.auth.auth_api import auth_router
+from api.report.report_api import report_router
 
 # Exporta las variables como variables de entorno
 os.environ["OPENAI_API_KEY"] = Config.OPENAI_API_KEY
@@ -34,24 +35,26 @@ settings = PlaygroundSettings(
     cors_origin_list=["http://localhost:3000", "http://localhost:3001", "https://agentes.implementos.cl", "*"]
 )
 
-app = Playground(
+playground_instance = Playground(
     agents=[
-        Agente_Ventas, Agente_Ventas_DeepSearch, #Agente_Ventas_DeepSearch_2,
-        Agente_Ventas_Voice,
+        Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
         Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch,
         Agente_VT, Agente_VT_Voz, Agente_VT_Cristian_Sepulveda, Agente_VT_Cristian_Sepulveda_Voz,
         Agente_Articulos,
-        Agente_Clientes,
-        Agente_Documentos,
+        # Agente_Clientes,
+        # Agente_Documentos,
         Agente_Ecommerce,
-        Agente_Maestro_Mecanico,
+        # Agente_Maestro_Mecanico,
     ],
     settings=settings
-).get_app(use_async=True)
+)
+
+app = playground_instance.get_app(use_async=True)
 
 # Custom APIS
 app.include_router(auth_router)
+app.include_router(report_router)
 
 if __name__ == "__main__":
     serve_playground_app("playground:app",host="0.0.0.0", reload=True)
