@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
 
@@ -140,6 +141,11 @@ def get_user_names_dict(user_ids: List[str]) -> Dict[str, str]:
     return user_names_dict
 
 report_router = APIRouter(prefix="/report", tags=["report"])
+
+@report_router.get("/agents")
+async def get_report_agents():
+    agents = await get_agents()
+    return agents
 
 @report_router.get("/conversaciones-por-dia")
 async def get_conversaciones_por_dia(params: DateAgentFilter = Depends(get_filter_params)):
