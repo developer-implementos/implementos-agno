@@ -266,3 +266,4 @@ Agente_VT_Cristian_Sepulveda_Voz.description = Agente_VT_Cristian_Sepulveda.desc
 Agente_VT_Cristian_Sepulveda_Voz.instructions = instructions_vt_voice.replace("{user_id}", "1021")
 Agente_VT_Cristian_Sepulveda_Voz.show_tool_calls = True
 Agente_VT_Cristian_Sepulveda_Voz.debug_mode = True
+Agente_VT_Cristian_Sepulveda.perfiles = []

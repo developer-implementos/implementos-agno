@@ -140,37 +140,30 @@ class KnowledgeTools(Toolkit):
             logger.error(f"Error recording analysis: {e}")
             return f"Error recording analysis: {e}"
 
-    DEFAULT_INSTRUCTIONS = dedent("""\
-        You have access to the Think, Search, and Analyze tools that will help you search your knowledge for relevant information. Use these tools as frequently as needed to find the most relevant information.
+    DEFAULT_INSTRUCTIONS = dedent(
+        """\
+        You have access to the `think` and `analyze` tools to work through problems step-by-step and structure your thought process. You must ALWAYS `think` before making tool calls or generating a response.
 
-        ## How to use the Think, Search, and Analyze tools:
-        1. **Think**
-        - Purpose: A scratchpad for planning, brainstorming keywords, and refining your approach. You never reveal your "Think" content to the user.
-        - Usage: Call `think` whenever you need to figure out what to do next, analyze your approach, or decide new search terms before (or after) you look up documents.
+        1. **Think** (scratchpad):
+            - Purpose: Use the `think` tool as a scratchpad to break down complex problems, outline steps, and decide on immediate actions within your reasoning flow. Use this to structure your internal monologue.
+            - Usage: Call `think` before making tool calls or generating a response. Explain your reasoning and specify the intended action (e.g., "make a tool call", "perform calculation", "ask clarifying question").
 
-        2. **Search**
-        - Purpose: Executes a query against the knowledge base.
-        - Usage: Call `search` with a clear query string whenever you want to retrieve documents or data. You can and should call this tool multiple times in one conversation.
-            - For complex topics, use multiple focused searches rather than one broad search
-            - Try different phrasing and keywords if initial searches don't yield useful results
-            - Use quotes for exact phrases and OR for alternative terms (e.g., "protein synthesis" OR "protein formation")
+        2. **Analyze** (evaluation):
+            - Purpose: Evaluate the result of a think step or a set of tool calls. Assess if the result is expected, sufficient, or requires further investigation.
+            - Usage: Call `analyze` after a set of tool calls. Determine the `next_action` based on your analysis: `continue` (more reasoning needed), `validate` (seek external confirmation/validation if possible), or `final_answer` (ready to conclude).
+            - Explain your reasoning highlighting whether the result is correct/sufficient.
 
-        3. **Analyze**
-        - Purpose: Evaluate whether the returned documents are correct and sufficient. If not, go back to "Think" or "Search" with refined queries.
-        - Usage: Call `analyze` after getting search results to verify the quality and correctness of that information. Consider:
-            - Relevance: Do the documents directly address the user's question?
-            - Completeness: Is there enough information to provide a thorough answer?
-            - Reliability: Are the sources credible and up-to-date?
-            - Consistency: Do the documents agree or contradict each other?
+        3. **Get Reasoning Steps** (review):
+            - Purpose: Retrieve the complete history of reasoning steps when you need to review your entire thinking process.
+            - Usage: Call `get_reasoning_steps` ONLY when you need a complete overview of your reasoning, typically at the end of your analysis or when you need to reflect on your entire thought process.
 
-        **Important Guidelines**:
-        - Do not include your internal chain-of-thought in direct user responses.
-        - Use "Think" to reason internally. These notes are never exposed to the user.
-        - Iterate through the cycle (Think → Search → Analyze) as many times as needed until you have a final answer.
-        - When you do provide a final answer to the user, be clear, concise, and accurate.
-        - If search results are sparse or contradictory, acknowledge limitations in your response.
-        - Synthesize information from multiple sources rather than relying on a single document.\
-    """)
+        ## IMPORTANT GUIDELINES
+        - **Always Think First:** You MUST use the `think` tool before making tool calls or generating a response.
+        - **Iterate to Solve:** Use the `think` and `analyze` tools iteratively to build a clear reasoning path. The typical flow is `Think` -> [`Tool Calls` if needed] -> [`Analyze` if needed] -> ... -> `final_answer`. Repeat this cycle until you reach a satisfactory conclusion.
+        - **Make multiple tool calls in parallel:** After a `think` step, you can make multiple tool calls in parallel.
+        - **Keep Thoughts Internal:** The reasoning steps (thoughts and analyses) are for your internal process only. Do not share them directly with the user.
+        - **Conclude Clearly:** When your analysis determines the `next_action` is `final_answer`, provide a concise and accurate final answer to the user."""
+    )
 
     FEW_SHOT_EXAMPLES = dedent("""\
         You can refer to the examples below as guidance for how to use each tool.

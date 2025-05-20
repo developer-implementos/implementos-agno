@@ -32,6 +32,7 @@ from agno.memory.agent import AgentMemory, AgentRun
 from agno.memory.v2.memory import Memory, SessionSummary
 from agno.models.base import Model
 from agno.models.message import Citations, Message, MessageReferences
+from agno.models.openai import OpenAIChat
 from agno.models.response import ModelResponse, ModelResponseEvent
 from agno.reasoning.step import NextAction, ReasoningStep, ReasoningSteps
 from agno.run.messages import RunMessages
@@ -3886,7 +3887,8 @@ class Agent:
         )
         user_message = Message(role=self.user_message_role, content=gen_session_name_prompt)
         generate_name_messages = [system_message, user_message]
-        generated_name = self.model.response(messages=generate_name_messages)
+        # generated_name = self.model.response(messages=generate_name_messages)
+        generated_name = OpenAIChat(id="gpt-4o-mini", temperature=0.1,).response(messages=generate_name_messages)
         content = generated_name.content
         if content is None:
             log_error("Generated name is None. Trying again.")

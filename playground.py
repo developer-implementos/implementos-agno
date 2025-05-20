@@ -11,7 +11,7 @@ from agno.playground import Playground, serve_playground_app
 from agno.playground.settings import PlaygroundSettings
 
 # Src
-from agent.agent_ventas import Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_DeepSearch_2
+from agent.agent_ventas import Agente_Ventas
 from agent.agent_ventas_voice import Agente_Ventas_Voice
 from agent.agent_articulos import Agente_Articulos
 from agent.agent_cartera_vt import Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch
@@ -21,6 +21,7 @@ from agent.agent_ecommerce import Agente_Ecommerce
 from agent.agent_maestro_mecanico import Agente_Maestro_Mecanico
 from agent.agent_vt import Agente_VT, Agente_VT_Voz, Agente_VT_Cristian_Sepulveda, Agente_VT_Cristian_Sepulveda_Voz
 from agent.agent_jefe_linea import Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch
+from agent.agent_reporte_uen import Agente_Reportes
 from config.config import Config
 
 from api.auth.auth_api import auth_router
@@ -37,7 +38,8 @@ settings = PlaygroundSettings(
 
 playground_instance = Playground(
     agents=[
-        Agente_Ventas, Agente_Ventas_DeepSearch, Agente_Ventas_Voice,
+        Agente_Reportes,
+        Agente_Ventas, Agente_Ventas_Voice,
         Agente_Cartera_Vt, Agente_Cartera_Vt_DeepSearch,
         Agente_Jefe_Linea, Agente_Jefe_Linea_DeepSearch,
         Agente_VT, Agente_VT_Voz, Agente_VT_Cristian_Sepulveda, Agente_VT_Cristian_Sepulveda_Voz,
