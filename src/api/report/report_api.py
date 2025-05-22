@@ -96,6 +96,18 @@ def genera_rango_dias(fecha_desde: datetime, fecha_hasta: datetime) -> List[str]
 
     return all_dates
 
+def genera_rango_franjas_horarias() -> List[str]:
+    """
+    Genera un rango de franjas horarias de 30 minutos
+    Ejemplo: ["00:00", "00:30", "01:00", "01:30", ...]
+    """
+    franjas = []
+    for hora in range(24):
+        for minuto in [0, 30]:
+            franja = f"{hora:02d}:{minuto:02d}"
+            franjas.append(franja)
+    return franjas
+
 def get_user_names_dict(user_ids: List[str]) -> Dict[str, str]:
     """
         Obtiene un diccionario con este formato: [user_id]: [user_name]
@@ -655,4 +667,330 @@ async def get_listado_conversaciones(
             "fecha_desde": params.fecha_desde.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "fecha_hasta": params.fecha_hasta.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
+    }
+
+
+@report_router.get("/conversaciones-por-franja-horaria")
+async def get_conversaciones_por_franja_horaria(params: DateAgentFilter = Depends(get_filter_params)):
+    """
+    Obtiene la cantidad de conversaciones por franja horaria de 30 minutos (Total y por agente)
+    """
+    client = MongoClient(Config.MONGO_IA)
+    db = client.get_default_database()
+    agent_sessions_collection = db["agent_sessions"]
+
+    agents = await get_agents()
+    if params.agent_ids is None:
+        params.agent_ids = [item["agent_id"] for item in agents]
+    else:
+        filtered_agents = [item for item in agents if item["agent_id"] in params.agent_ids]
+        agents = filtered_agents
+
+    # Mongo query - agrupar por franja horaria
+    mongo_filter = create_mongo_filter(params)
+    result = agent_sessions_collection.aggregate([
+        {"$match": mongo_filter},
+        {
+            "$group": {
+                "_id": {
+                    "agent_id": "$agent_id",
+                    "franja_horaria": {
+                        "$let": {
+                            "vars": {
+                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                            },
+                            "in": {
+                                "$concat": [
+                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    ":",
+                                    {
+                                        "$cond": [
+                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            "00",
+                                            "30"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "agent_name": {"$first": "$agent_data.name"},
+                "cantidad": {"$sum": 1}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "agent_id": "$_id.agent_id",
+                "franja_horaria": "$_id.franja_horaria",
+                "agent_name": 1,
+                "cantidad": 1
+            }
+        },
+        {"$sort": {"agent_id": 1, "franja_horaria": 1}}
+    ]).to_list(length=None)
+
+    # Formatear resultado
+    all_franjas = genera_rango_franjas_horarias()
+
+    agent_names = {}
+    data_by_agent = {}
+    total_by_franja = {franja: 0 for franja in all_franjas}
+
+    for item in result:
+        agent_id = item["agent_id"]
+        agent_name = item["agent_name"]
+        franja_horaria = item["franja_horaria"]
+        cantidad = item["cantidad"]
+
+        # Formatear franja horaria para que coincida con el formato esperado
+        if len(franja_horaria.split(":")[0]) == 1:
+            franja_horaria = "0" + franja_horaria
+
+        agent_names[agent_id] = agent_name
+
+        if agent_name not in data_by_agent:
+            data_by_agent[agent_name] = {franja: 0 for franja in all_franjas}
+
+        if franja_horaria in data_by_agent[agent_name]:
+            data_by_agent[agent_name][franja_horaria] = cantidad
+
+        if franja_horaria in total_by_franja:
+            total_by_franja[franja_horaria] += cantidad
+
+    # Convertir el diccionario a la estructura requerida
+    agentes = {}
+    for agent_name, franja_values in data_by_agent.items():
+        valores = [franja_values[franja] for franja in all_franjas]
+        agentes[agent_name] = valores
+
+    # Añadir el total
+    agentes["Total"] = [total_by_franja[franja] for franja in all_franjas]
+
+    # Resultado final
+    return {
+        "franjas_horarias": all_franjas,
+        "agentes": agentes
+    }
+
+
+@report_router.get("/usuarios-activos-por-franja-horaria")
+async def get_usuarios_activos_por_franja_horaria(params: DateAgentFilter = Depends(get_filter_params)):
+    """
+    Obtiene la cantidad de usuarios activos por franja horaria de 30 minutos (Total y por agente)
+    """
+    client = MongoClient(Config.MONGO_IA)
+    db = client.get_default_database()
+    agent_sessions_collection = db["agent_sessions"]
+
+    agents = await get_agents()
+    if params.agent_ids is None:
+        params.agent_ids = [item["agent_id"] for item in agents]
+    else:
+        filtered_agents = [item for item in agents if item["agent_id"] in params.agent_ids]
+        agents = filtered_agents
+
+    # Mongo query - contar usuarios ÚNICOS por franja horaria y por agente
+    mongo_filter = create_mongo_filter(params)
+    result = agent_sessions_collection.aggregate([
+        {"$match": mongo_filter},
+        {
+            "$group": {
+                "_id": {
+                    "agent_id": "$agent_id",
+                    "franja_horaria": {
+                        "$let": {
+                            "vars": {
+                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                            },
+                            "in": {
+                                "$concat": [
+                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    ":",
+                                    {
+                                        "$cond": [
+                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            "00",
+                                            "30"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "user_id": "$user_id"  # Agrupamos también por user_id para contarlos después
+                },
+                "agent_name": {"$first": "$agent_data.name"}
+            }
+        },
+        {
+            # Segundo nivel de agrupación: solo por agente y franja horaria
+            "$group": {
+                "_id": {
+                    "agent_id": "$_id.agent_id",
+                    "franja_horaria": "$_id.franja_horaria"
+                },
+                "agent_name": {"$first": "$agent_name"},
+                "cantidad_usuarios": {"$sum": 1}  # Cuenta usuarios únicos
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "agent_id": "$_id.agent_id",
+                "franja_horaria": "$_id.franja_horaria",
+                "agent_name": 1,
+                "cantidad": "$cantidad_usuarios"
+            }
+        },
+        {"$sort": {"agent_id": 1, "franja_horaria": 1}}
+    ]).to_list(length=None)
+
+    # Formatear resultado
+    all_franjas = genera_rango_franjas_horarias()
+
+    agent_names = {}
+    data_by_agent = {}
+    total_by_franja = {franja: 0 for franja in all_franjas}
+
+    for item in result:
+        agent_id = item["agent_id"]
+        agent_name = item["agent_name"]
+        franja_horaria = item["franja_horaria"]
+        cantidad = item["cantidad"]
+
+        # Formatear franja horaria para que coincida con el formato esperado
+        if len(franja_horaria.split(":")[0]) == 1:
+            franja_horaria = "0" + franja_horaria
+
+        agent_names[agent_id] = agent_name
+
+        if agent_name not in data_by_agent:
+            data_by_agent[agent_name] = {franja: 0 for franja in all_franjas}
+
+        if franja_horaria in data_by_agent[agent_name]:
+            data_by_agent[agent_name][franja_horaria] = cantidad
+
+        if franja_horaria in total_by_franja:
+            total_by_franja[franja_horaria] += cantidad
+
+    # Convertir el diccionario a la estructura requerida
+    agentes = {}
+    for agent_name, franja_values in data_by_agent.items():
+        valores = [franja_values[franja] for franja in all_franjas]
+        agentes[agent_name] = valores
+
+    # Añadir el total
+    agentes["Total"] = [total_by_franja[franja] for franja in all_franjas]
+
+    # Resultado final
+    return {
+        "franjas_horarias": all_franjas,
+        "agentes": agentes
+    }
+
+
+@report_router.get("/mensajes-por-franja-horaria")
+async def get_mensajes_por_franja_horaria(params: DateAgentFilter = Depends(get_filter_params)):
+    """
+    Obtiene la cantidad de mensajes por franja horaria de 30 minutos (Total y por agente)
+    """
+    client = MongoClient(Config.MONGO_IA)
+    db = client.get_default_database()
+    agent_sessions_collection = db["agent_sessions"]
+
+    agents = await get_agents()
+    if params.agent_ids is None:
+        params.agent_ids = [item["agent_id"] for item in agents]
+    else:
+        filtered_agents = [item for item in agents if item["agent_id"] in params.agent_ids]
+        agents = filtered_agents
+
+    # Mongo query - contar mensajes por franja horaria y por agente
+    mongo_filter = create_mongo_filter(params)
+    result = agent_sessions_collection.aggregate([
+        {"$match": mongo_filter},
+        {
+            "$group": {
+                "_id": {
+                    "agent_id": "$agent_id",
+                    "franja_horaria": {
+                        "$let": {
+                            "vars": {
+                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                            },
+                            "in": {
+                                "$concat": [
+                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    ":",
+                                    {
+                                        "$cond": [
+                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            "00",
+                                            "30"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "agent_name": {"$first": "$agent_data.name"},
+                "cantidad": {"$sum": {"$size": "$memory.runs"}}  # Sumar total de mensajes
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "agent_id": "$_id.agent_id",
+                "franja_horaria": "$_id.franja_horaria",
+                "agent_name": 1,
+                "cantidad": 1
+            }
+        },
+        {"$sort": {"agent_id": 1, "franja_horaria": 1}}
+    ]).to_list(length=None)
+
+    # Formatear resultado
+    all_franjas = genera_rango_franjas_horarias()
+
+    agent_names = {}
+    data_by_agent = {}
+    total_by_franja = {franja: 0 for franja in all_franjas}
+
+    for item in result:
+        agent_id = item["agent_id"]
+        agent_name = item["agent_name"]
+        franja_horaria = item["franja_horaria"]
+        cantidad = item["cantidad"]
+
+        # Formatear franja horaria para que coincida con el formato esperado
+        if len(franja_horaria.split(":")[0]) == 1:
+            franja_horaria = "0" + franja_horaria
+
+        agent_names[agent_id] = agent_name
+
+        if agent_name not in data_by_agent:
+            data_by_agent[agent_name] = {franja: 0 for franja in all_franjas}
+
+        if franja_horaria in data_by_agent[agent_name]:
+            data_by_agent[agent_name][franja_horaria] = cantidad
+
+        if franja_horaria in total_by_franja:
+            total_by_franja[franja_horaria] += cantidad
+
+    # Convertir el diccionario a la estructura requerida
+    agentes = {}
+    for agent_name, franja_values in data_by_agent.items():
+        valores = [franja_values[franja] for franja in all_franjas]
+        agentes[agent_name] = valores
+
+    # Añadir el total
+    agentes["Total"] = [total_by_franja[franja] for franja in all_franjas]
+
+    # Resultado final
+    return {
+        "franjas_horarias": all_franjas,
+        "agentes": agentes
     }
