@@ -2775,7 +2775,21 @@ class Agent:
             self.extra_data or {},
             {"user_id": self.user_id} if self.user_id is not None else {},
         )
-        return self._formatter.format(msg, **format_variables)  # type: ignore
+
+        # Añadir protección contra recursión
+        try:
+            # Limitar el número de iteraciones de formateo
+            formatted_msg = msg
+            max_iterations = 5
+            for i in range(max_iterations):
+                new_formatted = self._formatter.format(formatted_msg, **format_variables)
+                if new_formatted == formatted_msg:
+                    break  # No hay más cambios
+                formatted_msg = new_formatted
+            return formatted_msg
+        except (ValueError, RecursionError, KeyError) as e:
+            log_warning(f"Error al formatear mensaje con variables de estado: {e}")
+            return msg  # Retornar mensaje original si falla el formateo
 
     def get_system_message(self, session_id: str, user_id: Optional[str] = None) -> Optional[Message]:
         """Return the system message for the Agent.
