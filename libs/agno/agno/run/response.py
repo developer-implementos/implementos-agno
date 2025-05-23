@@ -180,7 +180,7 @@ class RunResponse:
             _dict["content"] = self.content.model_dump(exclude_none=True)
 
         if self.tools is not None:
-            _dict["tools"] = [tool.to_dict() for tool in self.tools]
+            _dict["tools"] = [tool if isinstance(tool, dict) else tool.to_dict() for tool in self.tools]
 
         return _dict
 

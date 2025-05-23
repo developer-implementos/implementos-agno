@@ -218,7 +218,10 @@ class Memory:
             _memory_dict["runs"] = {}
             for session_id, runs in self.runs.items():
                 if session_id is not None:
-                    _memory_dict["runs"][session_id] = [run.to_dict() for run in runs]  # type: ignore
+                    _memory_dict["runs"][session_id] = [
+                        run if isinstance(run, dict) else run.to_dict()
+                        for run in runs
+                    ]  # type: ignore
 
         if self.team_context is not None:
             _memory_dict["team_context"] = {}

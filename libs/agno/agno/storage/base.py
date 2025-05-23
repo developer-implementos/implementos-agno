@@ -35,6 +35,10 @@ class Storage(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_all_sessions_slim(self, user_id: Optional[str] = None, entity_id: Optional[str] = None) -> List[Session]:
+        raise NotImplementedError
+
+    @abstractmethod
     def upsert(self, session: Session) -> Optional[Session]:
         raise NotImplementedError
 

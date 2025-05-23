@@ -32,6 +32,7 @@ from agno.memory.agent import AgentMemory, AgentRun
 from agno.memory.v2.memory import Memory, SessionSummary
 from agno.models.base import Model
 from agno.models.message import Citations, Message, MessageMetrics, MessageReferences
+from agno.models.openai import OpenAIChat
 from agno.models.response import ModelResponse, ModelResponseEvent, ToolExecution
 from agno.reasoning.step import NextAction, ReasoningStep, ReasoningSteps
 from agno.run.messages import RunMessages

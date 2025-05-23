@@ -1545,7 +1545,6 @@ Instrucciones para Analistas de Datos: Construye un Informe detallado y Estraté
 @OPTIMIZACION_TOKENS:
   - Usa las herramientas think() y analyze() frecuentemente para razonar
   - No revises el historial completo después de cada think() o analyze()
-  - Usa get_reasoning_steps() ÚNICAMENTE al final del análisis o cuando sea absolutamente necesario
   - Para consultas a ClickHouse:
     * PRIMERO utiliza exploratory_data para obtener todos los datos consolidados
     * Usa run_query_batch con consultas pequeñas y específicas SOLO si se necesita profundizar

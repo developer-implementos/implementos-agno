@@ -8,12 +8,12 @@ from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from agno.agent.agent import Agent, RunResponse
-from agno.app.playground.operator import (
 from agno.media import Audio, Image, Video
 from agno.media import File as FileMedia
 from agno.memory.agent import AgentMemory
 from agno.memory.v2 import Memory
 from agno.models.anthropic import Claude
+from agno.app.playground.operator import (
     format_tools,
     get_agent_by_id,
     get_session_title,
@@ -380,7 +380,7 @@ def get_async_playground_router(
             return JSONResponse(status_code=404, content="Agent does not have storage enabled.")
 
         agent_sessions: List[AgentSessionsResponse] = []
-        all_agent_sessions: List[AgentSession] = agent.storage.get_all_sessions(user_id=user_id, entity_id=agent_id)  # type: ignore
+        all_agent_sessions: List[AgentSession] = agent.storage.get_all_sessions_slim(user_id=user_id, entity_id=agent_id)  # type: ignore
         for session in all_agent_sessions:
             title = get_session_title(session)
             agent_sessions.append(
@@ -684,7 +684,7 @@ def get_async_playground_router(
             team.monitoring = False
 
         if user_id is not None:
-            agent.user_id = user_id
+            team.user_id = user_id
 
         base64_images: List[Image] = []
         base64_audios: List[Audio] = []
