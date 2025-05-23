@@ -1,6 +1,8 @@
 import sys
 import os
 
+from phoenix.otel import register
+
 # Añade la carpeta 'libs' al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "libs", "agno")))
 # Añade la carpeta 'src' al path
@@ -36,6 +38,14 @@ settings = PlaygroundSettings(
     cors_origin_list=["http://localhost:3000", "http://localhost:3001", "https://agentes.implementos.cl", "*"]
 )
 
+# Arize AI
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "http://localhost:6006"
+tracer_provider = register(
+    project_name="implementos-agno-api",
+    auto_instrument=True
+)
+
+# Playground Agno
 playground_instance = Playground(
     agents=[
         Agente_Reportes,
@@ -49,7 +59,7 @@ playground_instance = Playground(
         Agente_Ecommerce,
         # Agente_Maestro_Mecanico,
     ],
-    settings=settings
+    settings=settings,
 )
 
 app = playground_instance.get_app(use_async=True)

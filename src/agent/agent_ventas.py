@@ -381,7 +381,7 @@ def create_agent() -> Agent:
         markdown=True,
         add_context=False,
         storage=MongoStorage,
-        debug_mode=False,
+        debug_mode=True,
         show_tool_calls=False,
         stream_intermediate_steps=False,
         add_state_in_messages=False,
