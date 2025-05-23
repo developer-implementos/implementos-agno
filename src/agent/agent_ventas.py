@@ -384,7 +384,7 @@ def create_agent() -> Agent:
         debug_mode=False,
         show_tool_calls=False,
         stream_intermediate_steps=False,
-        add_state_in_messages=True,
+        add_state_in_messages=False,
         enable_session_summaries=False,
         perfiles=["1", "3", "5", "9"],
     )

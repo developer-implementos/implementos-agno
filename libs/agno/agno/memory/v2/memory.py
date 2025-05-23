@@ -218,7 +218,10 @@ class Memory:
             _memory_dict["runs"] = {}
             for session_id, runs in self.runs.items():
                 if session_id is not None:
-                    _memory_dict["runs"][session_id] = [run.to_dict() for run in runs]  # type: ignore
+                    _memory_dict["runs"][session_id] = [
+                        run if isinstance(run, dict) else run.to_dict()
+                        for run in runs
+                    ]  # type: ignore
 
         if self.team_context is not None:
             _memory_dict["team_context"] = {}
@@ -674,7 +677,21 @@ class Memory:
         if not self.runs:
             self.runs = {}
 
-        self.runs.setdefault(session_id, []).append(run)
+        if session_id not in self.runs:
+            self.runs[session_id] = []
+
+        # Check if run already exists with the same run_id
+        if hasattr(run, "run_id") and run.run_id:
+            run_id = run.run_id
+            # Look for existing run with same ID
+            for i, existing_run in enumerate(self.runs[session_id]):
+                if hasattr(existing_run, "run_id") and existing_run.run_id == run_id:
+                    # Replace existing run
+                    self.runs[session_id][i] = run
+                    log_debug(f"Replaced existing run with run_id {run_id} in memory")
+                    return
+
+        self.runs[session_id].append(run)
         log_debug("Added RunResponse to Memory")
 
     def get_messages_from_last_n_runs(

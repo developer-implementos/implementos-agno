@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import Optional, Union
+from typing import Any, List, Optional, Union
 
 from agno.agent import Agent
 from agno.reasoning.step import NextAction, ReasoningStep
@@ -20,12 +20,6 @@ class ReasoningTools(Toolkit):
         **kwargs,
     ):
         """A toolkit that provides step-by-step reasoning tools: Think and Analyze."""
-        super().__init__(
-            name="reasoning_tools",
-            instructions=instructions,
-            add_instructions=add_instructions,
-            **kwargs,
-        )
 
         # Add instructions for using this toolkit
         if instructions is None:
@@ -37,12 +31,19 @@ class ReasoningTools(Toolkit):
                     self.instructions += "\n" + self.FEW_SHOT_EXAMPLES
             self.instructions += "\n</reasoning_instructions>\n"
 
-        # Register each tool based on the init flags
+        tools: List[Any] = []
         if think:
-            self.register(self.think)
+            tools.append(self.think)
         if analyze:
-            self.register(self.analyze)
-        self.register(self.get_reasoning_steps)
+            tools.append(self.analyze)
+
+        super().__init__(
+            name="reasoning_tools",
+            instructions=instructions,
+            add_instructions=add_instructions,
+            tools=tools,
+            **kwargs,
+        )
 
     def think(
         self, agent: Union[Agent, Team], title: str, thought: str, action: Optional[str] = None, confidence: float = 0.8
@@ -81,21 +82,24 @@ class ReasoningTools(Toolkit):
                 agent.session_state["reasoning_steps"][agent.run_id] = []
             agent.session_state["reasoning_steps"][agent.run_id].append(reasoning_step.model_dump_json())
 
-            # Add the step to the run response
-            if hasattr(agent, "run_response") and agent.run_response is not None:
-                if agent.run_response.extra_data is None:
-                    from agno.run.response import RunResponseExtraData
-
-                    agent.run_response.extra_data = RunResponseExtraData()
-                if agent.run_response.extra_data.reasoning_steps is None:
-                    agent.run_response.extra_data.reasoning_steps = []
-                agent.run_response.extra_data.reasoning_steps.append(reasoning_step)
-
-            # Return only the current step, not the full history
-            return f"think(\n  title=\"{title}\",\n  thought=\"{thought[:50]}...\"\n)"
+            # Return all previous reasoning_steps and the new reasoning_step
+            if "reasoning_steps" in agent.session_state and agent.run_id in agent.session_state["reasoning_steps"]:
+                formatted_reasoning_steps = ""
+                for i, step in enumerate(agent.session_state["reasoning_steps"][agent.run_id], 1):
+                    step_parsed = ReasoningStep.model_validate_json(step)
+                    step_str = dedent(f"""\
+Step {i}:
+Title: {step_parsed.title}
+Reasoning: {step_parsed.reasoning}
+Action: {step_parsed.action}
+Confidence: {step_parsed.confidence}
+""")
+                    formatted_reasoning_steps += step_str + "\n"
+                return formatted_reasoning_steps.strip()
+            return reasoning_step.model_dump_json()
         except Exception as e:
             log_error(f"Error recording thought: {e}")
-            return "Continuing with reasoning process..."
+            return f"Error recording thought: {e}"
 
     def analyze(
         self,
@@ -146,53 +150,24 @@ class ReasoningTools(Toolkit):
                 agent.session_state["reasoning_steps"][agent.run_id] = []
             agent.session_state["reasoning_steps"][agent.run_id].append(reasoning_step.model_dump_json())
 
-            # Add the step to the run response if we can
-            if hasattr(agent, "run_response") and agent.run_response is not None:
-                if agent.run_response.extra_data is None:
-                    from agno.run.response import RunResponseExtraData
-
-                    agent.run_response.extra_data = RunResponseExtraData()
-                if agent.run_response.extra_data.reasoning_steps is None:
-                    agent.run_response.extra_data.reasoning_steps = []
-                agent.run_response.extra_data.reasoning_steps.append(reasoning_step)
-
-            # Return only the current step, not the full history
-            return f"analyze(\n  title=\"{title}\",\n  analysis=\"{analysis[:50]}...\",\n  next_action=\"{next_action}\"\n)"
+            # Return all previous reasoning_steps and the new reasoning_step
+            if "reasoning_steps" in agent.session_state and agent.run_id in agent.session_state["reasoning_steps"]:
+                formatted_reasoning_steps = ""
+                for i, step in enumerate(agent.session_state["reasoning_steps"][agent.run_id], 1):
+                    step_parsed = ReasoningStep.model_validate_json(step)
+                    step_str = dedent(f"""\
+Step {i}:
+Title: {step_parsed.title}
+Reasoning: {step_parsed.reasoning}
+Action: {step_parsed.action}
+Confidence: {step_parsed.confidence}
+""")
+                    formatted_reasoning_steps += step_str + "\n"
+                return formatted_reasoning_steps.strip()
+            return reasoning_step.model_dump_json()
         except Exception as e:
             log_error(f"Error recording analysis: {e}")
-            return "Continuing with reasoning process..."
-
-    def get_reasoning_steps(self, agent: Union[Agent, Team]) -> str:
-        """Retrieve the complete history of reasoning steps.
-        Use ONLY when you need to review the entire reasoning process.
-
-        Args:
-            agent: The agent whose reasoning history to retrieve
-
-        Returns:
-            A formatted string with the complete history of reasoning steps
-        """
-        try:
-            if agent.session_state is None or "reasoning_steps" not in agent.session_state or agent.run_id not in \
-                agent.session_state["reasoning_steps"]:
-                return "No reasoning steps recorded."
-
-            formatted_reasoning_steps = ""
-            for i, step in enumerate(agent.session_state["reasoning_steps"][agent.run_id], 1):
-                step_parsed = ReasoningStep.model_validate_json(step)
-                step_str = f"""\
-                    Step {i}:
-                    Title: {step_parsed.title}
-                    Reasoning: {step_parsed.reasoning}
-                    Action: {step_parsed.action or "N/A"}
-                    Result: {step_parsed.result or "N/A"}
-                    Confidence: {step_parsed.confidence}
-                    """
-                formatted_reasoning_steps += step_str + "\n"
-            return formatted_reasoning_steps.strip()
-        except Exception as e:
-            log_error(f"Error retrieving reasoning steps: {e}")
-            return "Could not retrieve reasoning steps."
+            return f"Error recording analysis: {e}"
 
     # --------------------------------------------------------------------------------
     # Default instructions and few-shot examples
@@ -210,10 +185,6 @@ class ReasoningTools(Toolkit):
             - Purpose: Evaluate the result of a think step or a set of tool calls. Assess if the result is expected, sufficient, or requires further investigation.
             - Usage: Call `analyze` after a set of tool calls. Determine the `next_action` based on your analysis: `continue` (more reasoning needed), `validate` (seek external confirmation/validation if possible), or `final_answer` (ready to conclude).
             - Explain your reasoning highlighting whether the result is correct/sufficient.
-
-        3. **Get Reasoning Steps** (review):
-            - Purpose: Retrieve the complete history of reasoning steps when you need to review your entire thinking process.
-            - Usage: Call `get_reasoning_steps` ONLY when you need a complete overview of your reasoning, typically at the end of your analysis or when you need to reflect on your entire thought process.
 
         ## IMPORTANT GUIDELINES
         - **Always Think First:** You MUST use the `think` tool before making tool calls or generating a response.

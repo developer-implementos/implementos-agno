@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from agno.media import AudioArtifact, AudioResponse, ImageArtifact, VideoArtifact
 from agno.models.message import Citations, Message
+from agno.models.response import ToolExecution
 from agno.run.response import RunEvent, RunResponse, RunResponseExtraData
 
 
@@ -21,6 +22,7 @@ class TeamRunResponse:
     messages: Optional[List[Message]] = None
     metrics: Optional[Dict[str, Any]] = None
     model: Optional[str] = None
+    model_provider: Optional[str] = None
 
     member_responses: List[Union["TeamRunResponse", RunResponse]] = field(default_factory=list)
 
@@ -28,7 +30,7 @@ class TeamRunResponse:
     team_id: Optional[str] = None
     session_id: Optional[str] = None
 
-    tools: Optional[List[Dict[str, Any]]] = None
+    tools: Optional[List[ToolExecution]] = None
     formatted_tool_calls: Optional[List[str]] = None
 
     images: Optional[List[ImageArtifact]] = None  # Images from member runs
@@ -49,7 +51,7 @@ class TeamRunResponse:
             k: v
             for k, v in asdict(self).items()
             if v is not None
-            and k not in ["messages", "extra_data", "images", "videos", "audio", "response_audio", "citations"]
+            and k not in ["messages", "tools", "extra_data", "images", "videos", "audio", "response_audio", "citations"]
         }
         if self.messages is not None:
             _dict["messages"] = [m.to_dict() for m in self.messages]
@@ -73,10 +75,16 @@ class TeamRunResponse:
             _dict["member_responses"] = [response.to_dict() for response in self.member_responses]
 
         if self.citations is not None:
-            _dict["citations"] = self.citations.model_dump(exclude_none=True)
+            if isinstance(self.citations, Citations):
+                _dict["citations"] = self.citations.model_dump(exclude_none=True)
+            else:
+                _dict["citations"] = self.citations
 
-        if isinstance(self.content, BaseModel):
+        if self.content and isinstance(self.content, BaseModel):
             _dict["content"] = self.content.model_dump(exclude_none=True)
+
+        if self.tools is not None:
+            _dict["tools"] = [tool.to_dict() for tool in self.tools]
 
         return _dict
 

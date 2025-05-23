@@ -165,6 +165,56 @@ class MongoDbStorage(Storage):
             logger.error(f"Error getting sessions: {e}")
             return []
 
+    def get_all_sessions_slim(self, user_id: Optional[str] = None, entity_id: Optional[str] = None) -> List[Session]:
+        """Get all sessions matching the criteria
+        Args:
+            user_id: ID of the user to read
+            entity_id: ID of the agent / workflow to read
+        Returns:
+            List[Session]: List of sessions
+        """
+        try:
+            query = {}
+            if user_id is not None:
+                query["user_id"] = user_id
+            if entity_id is not None:
+                if self.mode == "agent":
+                    query["agent_id"] = entity_id
+                elif self.mode == "team":
+                    query["team_id"] = entity_id
+                elif self.mode == "workflow":
+                    query["workflow_id"] = entity_id
+
+            projection = {
+                "_id": 0,
+                "session_id": 1,
+                "session_data.session_name": 1,
+                "created_at": 1,
+                "agent_id": 1,
+                "agent_data.name": 1,
+            }
+
+            cursor = self.collection.find(query, projection).limit(50).sort("created_at", -1)
+
+            sessions: List[Session] = []
+            for doc in cursor:
+                if self.mode == "agent":
+                    _agent_session = AgentSession.from_dict(doc)
+                    if _agent_session is not None:
+                        sessions.append(_agent_session)
+                elif self.mode == "team":
+                    _team_session = TeamSession.from_dict(doc)
+                    if _team_session is not None:
+                        sessions.append(_team_session)
+                elif self.mode == "workflow":
+                    _workflow_session = WorkflowSession.from_dict(doc)
+                    if _workflow_session is not None:
+                        sessions.append(_workflow_session)
+            return sessions
+        except PyMongoError as e:
+            logger.error(f"Error getting sessions: {e}")
+            return []
+
     def upsert(self, session: Session, create_and_retry: bool = True) -> Optional[Session]:
         """Upsert a session
         Args:
