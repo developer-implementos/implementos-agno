@@ -13,84 +13,18 @@
   <a href="https://github.com/agno-agi/agno/stargazers">🌟 Star Us</a>
 </div>
 
-## Instalación
+## What is Agno?
 
-- Asegurarse de estar en la rama `implementos-main` (ya que `main` es para el fork)
-- Copie el archivo `.env.example` en `.env` y complete las propiedades.
-- Solicite y copie en la raiz el archivo `key-storage.json` de administración de buckets de google cloud.
-- Ejecute los siguientes comandos en Powershell de Windows para inicializar la API.
+[Agno](https://docs.agno.com) is a lightweight, high-performance library for building Agents.
 
-```bat
-./scripts/dev_setup.bat
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-python playground.py
-```
+It helps you progressively build the 5 levels of Agentic Systems:
+- Level 1: Agents with tools and instructions.
+- Level 2: Agents with knowledge and storage.
+- Level 3: Agents with memory and reasoning.
+- Level 4: Teams of Agents with collaboration and coordination.
+- Level 5: Agentic Workflows with state and determinism.
 
-- o Ejecute los siguientes comandos en Linux/Mac para inicializar la API
-
-```bash
-./scripts/dev_setup.sh
-source .venv/bin/activate
-pip install -r requirements.txt
-python playground.py
-```
-
-## Instalar nuevos paquetes
-
-Para instalar nuevos paquetes se debe usar los comandos:
-
-```bat
-.\.venv\Scripts\activate
-pip install fastapi anthropic uvicorn openai pymongo qdrant-client clickhouse_connect duckduckgo_search bs4 markdown_pdf google google-cloud google-cloud-storage pandas pypdf aiofiles python-docx sqlalchemy PyJWT thefuzz python-Levenshtein
-pip freeze > requirements.txt
-```
-
-IMPORTANTE: Se deben cambiar las primeras tres lineas por:
-```bat
--e ./libs/agno
--e ./libs/infra/agno_aws
--e ./libs/infra/agno_docker
-```
-
-## Cambios a la librería agno
-
-Cada vez que se realice un cambio local de la libreria agno SE DEBE EJECUTAR `pip install -e ./libs/agno` en la carpeta raiz.
-
-## Levantar playground
-
-Para levantar el playground se debe ejecutar el siguiente comando en la carpeta raiz.
-
-```bat
-.\.venv\Scripts\activate
-python playground.py
-```
-
-## Cartera objetivo
-
-Si quieres hacer pruebas de vendedor terreno o cartera objetivo, debes asignarte una cartera objetivo, en la conexión de mongo nube (.8) y colección "carteraObjetivo" ejecuta estas consultas, cambiando donde corresponda.
-
-```js
-db.getCollection("carteraObjetivo").deleteMany({codigoEmpleado: 1190})
-var data = db.getCollection("carteraObjetivo").find({codigoEmpleado: 1021, estadoVigente: 1}).toArray()
-
-var data2 = data.map(x => {
-    delete x._id;
-    x.codigoEmpleado = 1190;
-    x.nombreEmpleado = "JOSE ESPINOZA SALAS";
-    return x;
-});
-
-db.getCollection("carteraObjetivo").insertMany(data2)
-```
-
-## Introduction
-
-[Agno](https://docs.agno.com) is a lightweight library for building Agents with memory, knowledge, tools and reasoning.
-
-Developers use Agno to build Reasoning Agents, Multimodal Agents, Teams of Agents and Agentic Workflows. Agno also provides a beautiful UI to chat with your Agents, pre-built FastAPI routes to serve your Agents and tools to monitor and evaluate their performance.
-
-Here's an Agent that writes a report on a stock, reasoning through each step:
+Here's a Investment Research Agent that analyzes stocks, reasoning through each step:
 
 ```python reasoning_finance_agent.py
 from agno.agent import Agent
