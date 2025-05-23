@@ -697,15 +697,38 @@ async def get_conversaciones_por_franja_horaria(params: DateAgentFilter = Depend
                     "franja_horaria": {
                         "$let": {
                             "vars": {
-                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                "hour_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%H",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                },
+                                "minute_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%M",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                }
                             },
                             "in": {
                                 "$concat": [
-                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    {
+                                        "$cond": [
+                                            {"$lt": ["$$hour_santiago", 10]},
+                                            {"$concat": ["0", {"$toString": "$$hour_santiago"}]},
+                                            {"$toString": "$$hour_santiago"}
+                                        ]
+                                    },
                                     ":",
                                     {
                                         "$cond": [
-                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            {"$lt": ["$$minute_santiago", 30]},
                                             "00",
                                             "30"
                                         ]
@@ -802,15 +825,38 @@ async def get_usuarios_activos_por_franja_horaria(params: DateAgentFilter = Depe
                     "franja_horaria": {
                         "$let": {
                             "vars": {
-                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                "hour_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%H",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                },
+                                "minute_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%M",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                }
                             },
                             "in": {
                                 "$concat": [
-                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    {
+                                        "$cond": [
+                                            {"$lt": ["$$hour_santiago", 10]},
+                                            {"$concat": ["0", {"$toString": "$$hour_santiago"}]},
+                                            {"$toString": "$$hour_santiago"}
+                                        ]
+                                    },
                                     ":",
                                     {
                                         "$cond": [
-                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            {"$lt": ["$$minute_santiago", 30]},
                                             "00",
                                             "30"
                                         ]
@@ -918,15 +964,38 @@ async def get_mensajes_por_franja_horaria(params: DateAgentFilter = Depends(get_
                     "franja_horaria": {
                         "$let": {
                             "vars": {
-                                "date_obj": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                "hour_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%H",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                },
+                                "minute_santiago": {
+                                    "$toInt": {
+                                        "$dateToString": {
+                                            "format": "%M",
+                                            "date": {"$toDate": {"$multiply": ["$created_at", 1000]}},
+                                            "timezone": "America/Santiago"
+                                        }
+                                    }
+                                }
                             },
                             "in": {
                                 "$concat": [
-                                    {"$toString": {"$hour": "$$date_obj"}},
+                                    {
+                                        "$cond": [
+                                            {"$lt": ["$$hour_santiago", 10]},
+                                            {"$concat": ["0", {"$toString": "$$hour_santiago"}]},
+                                            {"$toString": "$$hour_santiago"}
+                                        ]
+                                    },
                                     ":",
                                     {
                                         "$cond": [
-                                            {"$lt": [{"$minute": "$$date_obj"}, 30]},
+                                            {"$lt": ["$$minute_santiago", 30]},
                                             "00",
                                             "30"
                                         ]
